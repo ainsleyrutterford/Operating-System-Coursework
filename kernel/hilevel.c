@@ -27,6 +27,21 @@ void scheduler( ctx_t* ctx ) {
   return;
 }
 
+void initialise_pcb(int process, uint32_t program, uint32_t memory) {
+  memset( &pcb[ process ], 0, sizeof( pcb_t ) );
+  pcb[ process ].pid      = (process + 1);
+  pcb[ process ].status   = STATUS_READY;
+  pcb[ process ].ctx.cpsr = 0x50;
+  pcb[ process ].ctx.pc   = program;
+  pcb[ process ].ctx.sp   = memory;
+}
+
+void start_execution(ctx_t* ctx, int process) {
+  memcpy( ctx, &pcb[ process ].ctx, sizeof( ctx_t ) );
+  pcb[ process ].status = STATUS_EXECUTING;
+  executing = 0;
+}
+
 void initialise_timer() {
   TIMER0->Timer1Load  = 0x00100000; // select period = 2^20 ticks ~= 1 sec
   TIMER0->Timer1Ctrl  = 0x00000002; // select 32-bit   timer
@@ -40,14 +55,6 @@ void initialise_timer() {
   GICD0->CTLR         = 0x00000001; // enable GIC distributor
 }
 
-void initialise_pcb(int process, uint32_t program, uint32_t memory) {
-  memset( &pcb[ process ], 0, sizeof( pcb_t ) );
-  pcb[ process ].pid      = (process + 1);
-  pcb[ process ].status   = STATUS_READY;
-  pcb[ process ].ctx.cpsr = 0x50;
-  pcb[ process ].ctx.pc   = program;
-  pcb[ process ].ctx.sp   = memory;
-}
 
 extern void     main_P3();
 extern uint32_t tos_P3;
@@ -59,14 +66,10 @@ extern uint32_t tos_P5;
 void hilevel_handler_rst( ctx_t* ctx ) {
 
   initialise_pcb(0, (uint32_t) (&main_P3), (uint32_t) (&tos_P3));
-
   initialise_pcb(1, (uint32_t) (&main_P4), (uint32_t) (&tos_P4));
-
   initialise_pcb(2, (uint32_t) (&main_P5), (uint32_t) (&tos_P5));
 
-  memcpy( ctx, &pcb[ 0 ].ctx, sizeof( ctx_t ) );
-  pcb[ 0 ].status = STATUS_EXECUTING;
-  executing = 0;
+  start_execution(ctx, 0);
 
   initialise_timer();
 
