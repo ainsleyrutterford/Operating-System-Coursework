@@ -7,24 +7,22 @@
 
 #include "hilevel.h"
 
-pcb_t pcb[ 3 ]; int executing = 0;
+#define PROCESSES 3
 
-void scheduler( ctx_t* ctx ) {
-  if     ( 0 == executing ) {
-    memcpy( &pcb[ 0 ].ctx, ctx, sizeof( ctx_t ) ); // preserve P_1
-    pcb[ 0 ].status = STATUS_READY;                // update   P_1 status
-    memcpy( ctx, &pcb[ 1 ].ctx, sizeof( ctx_t ) ); // restore  P_2
-    pcb[ 1 ].status = STATUS_EXECUTING;            // update   P_2 status
-    executing = 1;                                 // update   index => P_2
+pcb_t pcb[ PROCESSES ]; int executing = 0;
+
+void scheduler(ctx_t* ctx) {
+  int next = (executing + 1) % PROCESSES;
+  for (int i = 0; i < PROCESSES; i++) {
+    if (i == executing) {
+      memcpy( &pcb[ executing ].ctx, ctx, sizeof( ctx_t ) ); // preserve current process
+      pcb[ executing ].status = STATUS_READY;                // update current process status
+      memcpy( ctx, &pcb[ next ].ctx, sizeof( ctx_t ) );      // restore next process
+      pcb[ next ].status = STATUS_EXECUTING;                 // update next process status
+      executing = next;                                      // update index => next process
+      break; // return early once found
+    }
   }
-  else if( 1 == executing ) {
-    memcpy( &pcb[ 1 ].ctx, ctx, sizeof( ctx_t ) ); // preserve P_2
-    pcb[ 1 ].status = STATUS_READY;                // update   P_2 status
-    memcpy( ctx, &pcb[ 0 ].ctx, sizeof( ctx_t ) ); // restore  P_1
-    pcb[ 0 ].status = STATUS_EXECUTING;            // update   P_1 status
-    executing = 0;                                 // update   index => P_1
-  }
-  return;
 }
 
 void initialise_pcb(int process, uint32_t program, uint32_t memory) {
