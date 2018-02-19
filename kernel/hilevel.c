@@ -7,7 +7,7 @@
 
 #include "hilevel.h"
 
-pcb_t pcb[ 2 ]; int executing = 0;
+pcb_t pcb[ 3 ]; int executing = 0;
 
 void scheduler( ctx_t* ctx ) {
   if     ( 0 == executing ) {
@@ -27,10 +27,25 @@ void scheduler( ctx_t* ctx ) {
   return;
 }
 
+void initialise_timer() {
+  TIMER0->Timer1Load  = 0x00100000; // select period = 2^20 ticks ~= 1 sec
+  TIMER0->Timer1Ctrl  = 0x00000002; // select 32-bit   timer
+  TIMER0->Timer1Ctrl |= 0x00000040; // select periodic timer
+  TIMER0->Timer1Ctrl |= 0x00000020; // enable          timer interrupt
+  TIMER0->Timer1Ctrl |= 0x00000080; // enable          timer
+
+  GICC0->PMR          = 0x000000F0; // unmask all            interrupts
+  GICD0->ISENABLER1  |= 0x00000010; // enable timer          interrupt
+  GICC0->CTLR         = 0x00000001; // enable GIC interface
+  GICD0->CTLR         = 0x00000001; // enable GIC distributor
+}
+
 extern void     main_P3();
 extern uint32_t tos_P3;
 extern void     main_P4();
 extern uint32_t tos_P4;
+extern void     main_P5();
+extern uint32_t tos_P5;
 
 void hilevel_handler_rst( ctx_t* ctx ) {
 
@@ -48,20 +63,18 @@ void hilevel_handler_rst( ctx_t* ctx ) {
   pcb[ 1 ].ctx.pc   = ( uint32_t )( &main_P4 );
   pcb[ 1 ].ctx.sp   = ( uint32_t )( &tos_P4  );
 
+  memset( &pcb[ 2 ], 0, sizeof( pcb_t ) );
+  pcb[ 2 ].pid      = 3;
+  pcb[ 2 ].status   = STATUS_READY;
+  pcb[ 2 ].ctx.cpsr = 0x50;
+  pcb[ 2 ].ctx.pc   = ( uint32_t )( &main_P5 );
+  pcb[ 2 ].ctx.sp   = ( uint32_t )( &tos_P5  );
+
   memcpy( ctx, &pcb[ 0 ].ctx, sizeof( ctx_t ) );
   pcb[ 0 ].status = STATUS_EXECUTING;
   executing = 0;
 
-  TIMER0->Timer1Load  = 0x00100000; // select period = 2^20 ticks ~= 1 sec
-  TIMER0->Timer1Ctrl  = 0x00000002; // select 32-bit   timer
-  TIMER0->Timer1Ctrl |= 0x00000040; // select periodic timer
-  TIMER0->Timer1Ctrl |= 0x00000020; // enable          timer interrupt
-  TIMER0->Timer1Ctrl |= 0x00000080; // enable          timer
-
-  GICC0->PMR          = 0x000000F0; // unmask all            interrupts
-  GICD0->ISENABLER1  |= 0x00000010; // enable timer          interrupt
-  GICC0->CTLR         = 0x00000001; // enable GIC interface
-  GICD0->CTLR         = 0x00000001; // enable GIC distributor
+  initialise_timer();
 
   int_enable_irq();
 
