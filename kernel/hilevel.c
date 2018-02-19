@@ -12,15 +12,22 @@
 pcb_t pcb[ PROCESSES ]; int executing = 0;
 
 void scheduler(ctx_t* ctx) {
+
   int next = (executing + 1) % PROCESSES;
+  while (pcb[next].status == STATUS_TERMINATED) {
+    next = (next + 1) % PROCESSES;
+  }
+
   for (int i = 0; i < PROCESSES; i++) {
     if (i == executing) {
       memcpy( &pcb[ executing ].ctx, ctx, sizeof( ctx_t ) ); // preserve current process
-      pcb[ executing ].status = STATUS_READY;                // update current process status
-      memcpy( ctx, &pcb[ next ].ctx, sizeof( ctx_t ) );      // restore next process
-      pcb[ next ].status = STATUS_EXECUTING;                 // update next process status
-      executing = next;                                      // update index => next process
-      break; // return early once found
+      if (pcb[ executing ].status == STATUS_EXECUTING) { // If the current process is executing
+        pcb[ executing ].status = STATUS_READY;                // update current process status
+      }
+        memcpy( ctx, &pcb[ next ].ctx, sizeof( ctx_t ) );      // restore next process
+        pcb[ next ].status = STATUS_EXECUTING;                 // update next process status
+        executing = next;                                      // update index => next process
+        break; // return early once found
     }
   }
 }
@@ -107,6 +114,11 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
 
       ctx->gpr[ 0 ] = n;
       break;
+    }
+
+    case 0x04 : { // 0x04 => exit()
+      pcb[ executing ].status = STATUS_TERMINATED;
+      scheduler(ctx);
     }
 
     default : {
