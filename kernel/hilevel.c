@@ -9,36 +9,53 @@
 
 #define PROCESSES 3
 
-pcb_t pcb[ PROCESSES ]; int executing = 0;
+pcb_t pcb[PROCESSES]; int executing = 0;
+pcb_t queue[PROCESSES];
 
-void scheduler(ctx_t* ctx) {
+void scheduler(ctx_t* ctx) { // round robin scheduler
 
   int next = (executing + 1) % PROCESSES;
-  while (pcb[next].status == STATUS_TERMINATED) {
-    next = (next + 1) % PROCESSES;
+  while (pcb[next].status == STATUS_TERMINATED) { // Wont this loop be infinite if there is nothing to run?
+    next = (next + 1) % PROCESSES;                // how will a new process start executing if this loop is still running
   }
 
   for (int i = 0; i < PROCESSES; i++) {
     if (i == executing) {
-      memcpy( &pcb[ executing ].ctx, ctx, sizeof( ctx_t ) ); // preserve current process
-      if (pcb[ executing ].status == STATUS_EXECUTING) { // If the current process is executing
-        pcb[ executing ].status = STATUS_READY;                // update current process status
+      if (pcb[executing].status == STATUS_EXECUTING) {     // If the current process is executing
+        pcb[executing].status = STATUS_READY;              // update current process status
       }
-        memcpy( ctx, &pcb[ next ].ctx, sizeof( ctx_t ) );      // restore next process
-        pcb[ next ].status = STATUS_EXECUTING;                 // update next process status
-        executing = next;                                      // update index => next process
-        break; // return early once found
+      memcpy( &pcb[executing].ctx, ctx, sizeof( ctx_t ) ); // preserve current process
+      memcpy( ctx, &pcb[next].ctx, sizeof( ctx_t ) );      // restore next process
+      pcb[next].status = STATUS_EXECUTING;                 // update next process status
+      executing = next;                                      // update index => next process
+      break; // return early once found
     }
   }
 }
 
-void initialise_pcb(int process, uint32_t program, uint32_t memory) {
+// Insertion sort in descending order.
+void sort_pcb_by_priority(int n) {
+  pcb_t key;
+  int i;
+  for (int j = 1; j < n; j++) {
+    key = pcb[j];
+    i = j-1;
+    while (i >= 0 && pcb[i].priority < key.priority) {
+      pcb[i+1] = pcb[i];
+      i = i-1;
+    }
+    pcb[i+1] = key;
+  }
+}
+
+void initialise_pcb(int process, uint32_t program, uint32_t memory, int priority) {
   memset( &pcb[ process ], 0, sizeof( pcb_t ) );
   pcb[ process ].pid      = (process + 1);
   pcb[ process ].status   = STATUS_READY;
   pcb[ process ].ctx.cpsr = 0x50;
   pcb[ process ].ctx.pc   = program;
   pcb[ process ].ctx.sp   = memory;
+  pcb[ process ].priority = priority;
 }
 
 void start_execution(ctx_t* ctx, int process) {
@@ -70,9 +87,11 @@ extern uint32_t tos_P5;
 
 void hilevel_handler_rst( ctx_t* ctx ) {
 
-  initialise_pcb(0, (uint32_t) (&main_P3), (uint32_t) (&tos_P3));
-  initialise_pcb(1, (uint32_t) (&main_P4), (uint32_t) (&tos_P4));
-  initialise_pcb(2, (uint32_t) (&main_P5), (uint32_t) (&tos_P5));
+  initialise_pcb(0, (uint32_t) (&main_P3), (uint32_t) (&tos_P3), 1);
+  initialise_pcb(1, (uint32_t) (&main_P4), (uint32_t) (&tos_P4), 1);
+  initialise_pcb(2, (uint32_t) (&main_P5), (uint32_t) (&tos_P5), 3);
+
+  sort_pcb_by_priority(PROCESSES);
 
   start_execution(ctx, 0);
 
