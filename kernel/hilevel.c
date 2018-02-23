@@ -7,15 +7,17 @@
 
 #include "hilevel.h"
 
-#define PROCESSES 3
+#define MAX_PROCESSES 3
 
-pcb_t pcb[PROCESSES]; int executing = 0;
+pcb_t pcb[MAX_PROCESSES];
+int executing = 0;
+int processes = 0;
 
 void scheduler(ctx_t* ctx) { // priority based scheduler
 
   int next = 0;
   int max = 0;
-  for (int i = 0; i < PROCESSES; i++) {
+  for (int i = 0; i < MAX_PROCESSES; i++) {
     if (pcb[i].priority + pcb[i].age > max && // if i has highest priorty + age then make it next
         pcb[i].status != STATUS_TERMINATED) { // if terminated then dont make it next
       max = pcb[i].priority + pcb[i].age;     // update max total priority
@@ -27,7 +29,7 @@ void scheduler(ctx_t* ctx) { // priority based scheduler
   pcb[next].age = 0; // reset the age of the process to be executed to 0
 
   if (next != executing) { // Only change processes if needed
-    for (int i = 0; i < PROCESSES; i++) {
+    for (int i = 0; i < MAX_PROCESSES; i++) {
       if (i == executing) {
         if (pcb[executing].status == STATUS_EXECUTING) {     // If the current process is executing
           pcb[executing].status = STATUS_READY;              // update current process status
@@ -35,7 +37,7 @@ void scheduler(ctx_t* ctx) { // priority based scheduler
         memcpy( &pcb[executing].ctx, ctx, sizeof( ctx_t ) ); // preserve current process
         memcpy( ctx, &pcb[next].ctx, sizeof( ctx_t ) );      // restore next process
         pcb[next].status = STATUS_EXECUTING;                 // update next process status
-        executing = next;                                      // update index => next process
+        executing = next;                                    // update index => next process
         break; // return early once found
       }
     }
@@ -89,23 +91,35 @@ void initialise_timer() {
 }
 
 
-extern void     main_P3();
-extern uint32_t tos_P3;
-extern void     main_P4();
-extern uint32_t tos_P4;
-extern void     main_P5();
-extern uint32_t tos_P5;
+// extern void     main_P3();
+// extern uint32_t tos_P3;
+// extern void     main_P4();
+// extern uint32_t tos_P4;
+// extern void     main_P5();
+// extern uint32_t tos_P5;
 extern void     main_console();
 extern uint32_t tos_console;
+extern uint32_t tos_user;
 
 void hilevel_handler_rst( ctx_t* ctx ) {
 
-  initialise_pcb(0, 1, (uint32_t) (&main_P3), (uint32_t) (&tos_P3), 0);
-  initialise_pcb(1, 2, (uint32_t) (&main_P4), (uint32_t) (&tos_P4), 5);
-  initialise_pcb(2, 3, (uint32_t) (&main_P5), (uint32_t) (&tos_P5), 7);
-  // initialise_pcb(3, 4, (uint32_t) (&main_console), (uint32_t) (&tos_console), 10);
+  // initialise_pcb(0, 1, (uint32_t) (&main_P3), (uint32_t) (&tos_P3), 0);
+  // initialise_pcb(1, 2, (uint32_t) (&main_P4), (uint32_t) (&tos_P4), 5);
+  // initialise_pcb(2, 3, (uint32_t) (&main_P5), (uint32_t) (&tos_P5), 7);
+  // initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_console), 10);
 
-  sort_pcb_by_priority(PROCESSES);
+  for (int i = 0; i < MAX_PROCESSES; i++) {
+    initialise_pcb( i,
+                    i+1,
+                    (uint32_t) (0),
+                    (uint32_t) (&tos_user - (i * 0x00001000)),
+                    0 );
+  }
+
+  initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_console), 10);
+  processes = 1;
+
+  sort_pcb_by_priority(MAX_PROCESSES);
 
   start_execution(ctx, 0);
 
@@ -150,7 +164,25 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
     }
 
     case 0x03 : { // 0x03 => fork()
+      // copy context of parent to child
+      memcpy( &pcb[processes].ctx, ctx, sizeof( ctx_t ) );
+      // set pid of child to next available pid
+      memset( &pcb[processes].pid, processes, sizeof( pid_t ) );
+      // set r0 of child to 0 which will be the return value of fork
+      memset( &pcb[processes].ctx.gpr[0], 0, sizeof( ctx->gpr[0] ));
+      // set r0 of parent to the bext available pid which is the pid of the child
+      memset( &pcb[executing].ctx.gpr[0], processes, sizeof( ctx->gpr[0] ));
 
+      // copy the stack of the parent process to the stack of the child process
+      memcpy( (uint32_t) (&tos_user - (processes * 0x00001000)),
+              (uint32_t) (&tos_user - (executing * 0x00001000)),
+              0x00001000);
+
+      // memset( &pcb[processes].ctx.sp, &pcb[executing].ctx.sp - )
+
+      // copy stack of parent to child.
+      // set stack pointer of child to correct position (where the parents was)
+      // set pid of child process to 0 and set pid of parent to next available pid
     }
 
     case 0x04 : { // 0x04 => exit()
