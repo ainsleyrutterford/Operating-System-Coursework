@@ -11,25 +11,36 @@
 
 pcb_t pcb[PROCESSES]; int executing = 0;
 
-void scheduler(ctx_t* ctx) { // round robin scheduler
+void scheduler(ctx_t* ctx) { // priority based scheduler
 
-  int next = (executing + 1) % PROCESSES;
-  while (pcb[next].status == STATUS_TERMINATED) { // Wont this loop be infinite if there is nothing to run?
-    next = (next + 1) % PROCESSES;                // how will a new process start executing if this loop is still running
+  int next = 0;
+  int max = 0;
+  for (int i = 0; i < PROCESSES; i++) {
+    if (pcb[i].priority + pcb[i].age > max && // if i has highest priorty + age then make it next
+        pcb[i].status != STATUS_TERMINATED) { // if terminated then dont make it next
+      max = pcb[i].priority + pcb[i].age;     // update max total priority
+      next = i;                               // update next if i is the max
+    }
+    pcb[i].age++; // increment age of every process
   }
 
-  for (int i = 0; i < PROCESSES; i++) {
-    if (i == executing) {
-      if (pcb[executing].status == STATUS_EXECUTING) {     // If the current process is executing
-        pcb[executing].status = STATUS_READY;              // update current process status
+  pcb[next].age = 0; // reset the age of the process to be executed to 0
+
+  if (next != executing) { // Only change processes if needed
+    for (int i = 0; i < PROCESSES; i++) {
+      if (i == executing) {
+        if (pcb[executing].status == STATUS_EXECUTING) {     // If the current process is executing
+          pcb[executing].status = STATUS_READY;              // update current process status
+        }
+        memcpy( &pcb[executing].ctx, ctx, sizeof( ctx_t ) ); // preserve current process
+        memcpy( ctx, &pcb[next].ctx, sizeof( ctx_t ) );      // restore next process
+        pcb[next].status = STATUS_EXECUTING;                 // update next process status
+        executing = next;                                      // update index => next process
+        break; // return early once found
       }
-      memcpy( &pcb[executing].ctx, ctx, sizeof( ctx_t ) ); // preserve current process
-      memcpy( ctx, &pcb[next].ctx, sizeof( ctx_t ) );      // restore next process
-      pcb[next].status = STATUS_EXECUTING;                 // update next process status
-      executing = next;                                      // update index => next process
-      break; // return early once found
     }
   }
+
 }
 
 // Insertion sort in descending order.
@@ -55,6 +66,7 @@ void initialise_pcb(int process, int pid, uint32_t program, uint32_t memory, int
   pcb[ process ].ctx.pc   = program;
   pcb[ process ].ctx.sp   = memory;
   pcb[ process ].priority = priority;
+  pcb[ process ].age      = 0;
 }
 
 void start_execution(ctx_t* ctx, int process) {
@@ -83,12 +95,15 @@ extern void     main_P4();
 extern uint32_t tos_P4;
 extern void     main_P5();
 extern uint32_t tos_P5;
+extern void     main_console();
+extern uint32_t tos_console;
 
 void hilevel_handler_rst( ctx_t* ctx ) {
 
-  initialise_pcb(0, 1, (uint32_t) (&main_P3), (uint32_t) (&tos_P3), 5);
+  initialise_pcb(0, 1, (uint32_t) (&main_P3), (uint32_t) (&tos_P3), 0);
   initialise_pcb(1, 2, (uint32_t) (&main_P4), (uint32_t) (&tos_P4), 5);
-  initialise_pcb(2, 3, (uint32_t) (&main_P5), (uint32_t) (&tos_P5), 10);
+  initialise_pcb(2, 3, (uint32_t) (&main_P5), (uint32_t) (&tos_P5), 7);
+  // initialise_pcb(3, 4, (uint32_t) (&main_console), (uint32_t) (&tos_console), 10);
 
   sort_pcb_by_priority(PROCESSES);
 
