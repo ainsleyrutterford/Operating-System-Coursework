@@ -174,11 +174,14 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       memset( &pcb[executing].ctx.gpr[0], processes, sizeof( ctx->gpr[0] ));
 
       // copy the stack of the parent process to the stack of the child process
-      memcpy( (uint32_t) (&tos_user - (processes * 0x00001000)),
-              (uint32_t) (&tos_user - (executing * 0x00001000)),
+      memcpy( &tos_user - (processes * 0x00001000),
+              &tos_user - (executing * 0x00001000),
               0x00001000);
 
-      // memset( &pcb[processes].ctx.sp, &pcb[executing].ctx.sp - )
+      // set stack pointer of child process to correct stack pointer
+      memset( &pcb[processes].ctx.sp,
+              pcb[executing].ctx.sp - (executing * 0x00001000) + (processes * 0x00001000),
+              sizeof( ctx->sp ));
 
       // copy stack of parent to child.
       // set stack pointer of child to correct position (where the parents was)
