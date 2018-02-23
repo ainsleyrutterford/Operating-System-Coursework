@@ -10,7 +10,6 @@
 #define PROCESSES 3
 
 pcb_t pcb[PROCESSES]; int executing = 0;
-pcb_t queue[PROCESSES];
 
 void scheduler(ctx_t* ctx) { // round robin scheduler
 
@@ -48,9 +47,9 @@ void sort_pcb_by_priority(int n) {
   }
 }
 
-void initialise_pcb(int process, uint32_t program, uint32_t memory, int priority) {
+void initialise_pcb(int process, int pid, uint32_t program, uint32_t memory, int priority) {
   memset( &pcb[ process ], 0, sizeof( pcb_t ) );
-  pcb[ process ].pid      = (process + 1);
+  pcb[ process ].pid      = pid;
   pcb[ process ].status   = STATUS_READY;
   pcb[ process ].ctx.cpsr = 0x50;
   pcb[ process ].ctx.pc   = program;
@@ -87,9 +86,9 @@ extern uint32_t tos_P5;
 
 void hilevel_handler_rst( ctx_t* ctx ) {
 
-  initialise_pcb(0, (uint32_t) (&main_P3), (uint32_t) (&tos_P3), 1);
-  initialise_pcb(1, (uint32_t) (&main_P4), (uint32_t) (&tos_P4), 1);
-  initialise_pcb(2, (uint32_t) (&main_P5), (uint32_t) (&tos_P5), 3);
+  initialise_pcb(0, 1, (uint32_t) (&main_P3), (uint32_t) (&tos_P3), 5);
+  initialise_pcb(1, 2, (uint32_t) (&main_P4), (uint32_t) (&tos_P4), 5);
+  initialise_pcb(2, 3, (uint32_t) (&main_P5), (uint32_t) (&tos_P5), 10);
 
   sort_pcb_by_priority(PROCESSES);
 
@@ -135,9 +134,17 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       break;
     }
 
+    case 0x03 : { // 0x03 => fork()
+
+    }
+
     case 0x04 : { // 0x04 => exit()
       pcb[ executing ].status = STATUS_TERMINATED;
       scheduler(ctx);
+    }
+
+    case 0x05 : { // 0x05 => exec()
+
     }
 
     default : {
