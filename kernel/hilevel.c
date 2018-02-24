@@ -11,7 +11,7 @@
 
 pcb_t pcb[MAX_PROCESSES];
 int executing = 0;
-int processes = 0;
+uint32_t processes = 0;
 
 void scheduler(ctx_t* ctx) { // priority based scheduler
 
@@ -109,10 +109,13 @@ void hilevel_handler_rst( ctx_t* ctx ) {
   // initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_console), 10);
 
   for (int i = 0; i < MAX_PROCESSES; i++) {
+    // right now adding 0x1000 seems to add 0x4000 instead?
+    // try removing uint32_t cast? i dunno 
+    uint32_t memory = (uint32_t) (&tos_user + (i * 0x00001000));
     initialise_pcb( i,
                     i+1,
                     (uint32_t) (0),
-                    (uint32_t) (&tos_user - (i * 0x00001000)),
+                    memory,
                     0 );
   }
 
@@ -167,25 +170,33 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       // copy context of parent to child
       memcpy( &pcb[processes].ctx, ctx, sizeof( ctx_t ) );
       // set pid of child to next available pid
-      memset( &pcb[processes].pid, processes, sizeof( pid_t ) );
+      // memset( &pcb[processes].pid, processes, sizeof( pid_t ) );
+      pcb[processes].pid = processes;
       // set r0 of child to 0 which will be the return value of fork
-      memset( &pcb[processes].ctx.gpr[0], 0, sizeof( ctx->gpr[0] ));
-      // set r0 of parent to the bext available pid which is the pid of the child
-      memset( &pcb[executing].ctx.gpr[0], processes, sizeof( ctx->gpr[0] ));
+      // memset( &pcb[processes].ctx.gpr[0], 0, sizeof( ctx->gpr[0] ));
+      pcb[processes].ctx.gpr[0] = 0;
+      // set r0 of parent to the next available pid which is the pid of the child
+      // memset( &pcb[executing].ctx.gpr[0], processes, sizeof( ctx->gpr[0] ));
+      pcb[executing].ctx.gpr[0] = processes;
 
       // copy the stack of the parent process to the stack of the child process
-      memcpy( &tos_user - (processes * 0x00001000),
-              &tos_user - (executing * 0x00001000),
+      memcpy( &tos_user + (processes * 0x00001000),
+              &tos_user + (executing * 0x00001000),
               0x00001000);
 
       // set stack pointer of child process to correct stack pointer
-      memset( &pcb[processes].ctx.sp,
-              pcb[executing].ctx.sp - (executing * 0x00001000) + (processes * 0x00001000),
-              sizeof( ctx->sp ));
+      uint32_t new_sp = pcb[executing].ctx.sp
+                        - (executing * 0x00001000)
+                        + (processes * 0x00001000);
+      // memset( &pcb[processes].ctx.sp,
+      //         new_sp,
+      //         sizeof( ctx->sp ));
+      pcb[processes].ctx.sp = new_sp;
 
       // copy stack of parent to child.
       // set stack pointer of child to correct position (where the parents was)
       // set pid of child process to 0 and set pid of parent to next available pid
+      processes++;
     }
 
     case 0x04 : { // 0x04 => exit()
@@ -194,7 +205,13 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
     }
 
     case 0x05 : { // 0x05 => exec()
-
+      // memset( &ctx->pc, ctx->gpr[0], sizeof( ctx->gpr[0] ));
+      // apparently r0 is 0 at the moment which is wrong i think?
+      // r0 is the address that the pc should point to next as r0 was set to
+      // the pointer that is provided to exec()?
+      ctx->pc = ctx->gpr[0];
+      // memset( &ctx->sp, tos_user - (executing * 0x00001000), sizeof( ctx->sp ));
+      ctx->sp = tos_user + (executing * 0x00001000);
     }
 
     default : {
