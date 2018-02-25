@@ -185,33 +185,25 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       memcpy( child_stack, parent_stack, 0x00001000);
 
       // set stack pointer of child process to correct stack pointer
-      uint32_t new_sp = ctx->sp
-                        - (executing * 0x00001000)
-                        + (processes * 0x00001000);
-      // memset( &pcb[processes].ctx.sp,
-      //         new_sp,
-      //         sizeof( ctx->sp ));
+      uint32_t new_sp = ctx->sp - (executing * 0x00001000) + (processes * 0x00001000);
       pcb[processes].ctx.sp = new_sp;
 
-      // copy stack of parent to child.
-      // set stack pointer of child to correct position (where the parents was)
-      // set pid of child process to 0 and set pid of parent to next available pid
       processes++;
+      break;
     }
 
     case 0x04 : { // 0x04 => exit()
       pcb[ executing ].status = STATUS_TERMINATED;
       scheduler(ctx);
+      break;
     }
 
     case 0x05 : { // 0x05 => exec()
       // memset( &ctx->pc, ctx->gpr[0], sizeof( ctx->gpr[0] ));
-      // apparently r0 is 0 at the moment which is wrong i think?
-      // r0 is the address that the pc should point to next as r0 was set to
-      // the pointer that is provided to exec()?
       ctx->pc = ctx->gpr[0];
       // memset( &ctx->sp, tos_user - (executing * 0x00001000), sizeof( ctx->sp ));
       ctx->sp = tos_user + (executing * 0x00001000);
+      break;
     }
 
     default : {
