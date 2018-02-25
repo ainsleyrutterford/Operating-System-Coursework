@@ -110,8 +110,8 @@ void hilevel_handler_rst( ctx_t* ctx ) {
 
   for (int i = 0; i < MAX_PROCESSES; i++) {
     // right now adding 0x1000 seems to add 0x4000 instead?
-    // try removing uint32_t cast? i dunno 
-    uint32_t memory = (uint32_t) (&tos_user + (i * 0x00001000));
+    // so for now im adding 0x400 as this seems to be equivalent to 0x1000
+    uint32_t memory = (uint32_t) (&tos_user + (i * 0x00000400));
     initialise_pcb( i,
                     i+1,
                     (uint32_t) (0),
@@ -119,7 +119,7 @@ void hilevel_handler_rst( ctx_t* ctx ) {
                     0 );
   }
 
-  initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_console), 10);
+  initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
   processes = 1;
 
   sort_pcb_by_priority(MAX_PROCESSES);
@@ -171,21 +171,21 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       memcpy( &pcb[processes].ctx, ctx, sizeof( ctx_t ) );
       // set pid of child to next available pid
       // memset( &pcb[processes].pid, processes, sizeof( pid_t ) );
-      pcb[processes].pid = processes;
+      pcb[processes].pid = processes + 1;
       // set r0 of child to 0 which will be the return value of fork
       // memset( &pcb[processes].ctx.gpr[0], 0, sizeof( ctx->gpr[0] ));
       pcb[processes].ctx.gpr[0] = 0;
       // set r0 of parent to the next available pid which is the pid of the child
       // memset( &pcb[executing].ctx.gpr[0], processes, sizeof( ctx->gpr[0] ));
-      pcb[executing].ctx.gpr[0] = processes;
+      ctx->gpr[0] = processes + 1;
 
       // copy the stack of the parent process to the stack of the child process
-      memcpy( &tos_user + (processes * 0x00001000),
-              &tos_user + (executing * 0x00001000),
-              0x00001000);
+      uint32_t* child_stack = &tos_user + (processes * 0x00001000);
+      uint32_t* parent_stack = &tos_user + (executing * 0x00001000);
+      memcpy( child_stack, parent_stack, 0x00001000);
 
       // set stack pointer of child process to correct stack pointer
-      uint32_t new_sp = pcb[executing].ctx.sp
+      uint32_t new_sp = ctx->sp
                         - (executing * 0x00001000)
                         + (processes * 0x00001000);
       // memset( &pcb[processes].ctx.sp,
