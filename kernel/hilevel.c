@@ -159,13 +159,10 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       // copy context of parent to child
       memcpy( &pcb[processes].ctx, ctx, sizeof( ctx_t ) );
       // set pid of child to next available pid
-      // memset( &pcb[processes].pid, processes, sizeof( pid_t ) );
       pcb[processes].pid = processes + 1;
       // set r0 of child to 0 which will be the return value of fork
-      // memset( &pcb[processes].ctx.gpr[0], 0, sizeof( ctx->gpr[0] ));
       pcb[processes].ctx.gpr[0] = 0;
       // set r0 of parent to the next available pid which is the pid of the child
-      // memset( &pcb[executing].ctx.gpr[0], processes, sizeof( ctx->gpr[0] ));
       ctx->gpr[0] = processes + 1;
 
       // copy the stack of the parent process to the stack of the child process
@@ -181,8 +178,10 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       // pcb[processes].age = 1000;
       // pcb[processes].priority = 1000;
 
+      // set the status of the child process to ready
       pcb[processes].status = STATUS_READY;
 
+      // increment the number of processes
       processes++;
       break;
     }
@@ -194,14 +193,23 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
     }
 
     case 0x05 : { // 0x05 => exec()
-      // memset( &ctx->pc, ctx->gpr[0], sizeof( ctx->gpr[0] ));
+      // set the program counter to r0 which was set to the pointer provided
+      // to the exec call which points to the program to be executed
       ctx->pc = ctx->gpr[0];
-      // memset( &ctx->sp, tos_user - (executing * 0x00001000), sizeof( ctx->sp ));
+      // update the stackpointer so that it is pointing at the correct stack
+      // is this the correct stack though?
       ctx->sp = tos_user + (executing * 0x00001000);
 
       // how do i set this pcb status to executing?
+      // i think its okay because i had set the status of the child to ready
+      // and then the scheduler will choose it next and set the status to executing
 
       break;
+    }
+
+    case 0x06 : { // 0x05 => kill()
+      pcb[ctx->gpr[0] - 1].status = STATUS_TERMINATED;
+      scheduler(ctx);
     }
 
     default : {
