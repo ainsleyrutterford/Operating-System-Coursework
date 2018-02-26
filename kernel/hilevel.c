@@ -7,7 +7,7 @@
 
 #include "hilevel.h"
 
-#define MAX_PROCESSES 3
+#define MAX_PROCESSES 5
 
 pcb_t pcb[MAX_PROCESSES];
 int executing = 0;
@@ -17,9 +17,10 @@ void scheduler(ctx_t* ctx) { // priority based scheduler
 
   int next = 0;
   int max = 0;
-  for (int i = 0; i < MAX_PROCESSES; i++) {
+  for (int i = 0; i < processes; i++) {
     if (pcb[i].priority + pcb[i].age > max && // if i has highest priorty + age then make it next
-        pcb[i].status != STATUS_TERMINATED) { // if terminated then dont make it next
+        (pcb[i].status == STATUS_READY ||
+         pcb[i].status == STATUS_WAITING)) { // only accept ready or waiting processes
       max = pcb[i].priority + pcb[i].age;     // update max total priority
       next = i;                               // update next if i is the max
     }
@@ -29,7 +30,7 @@ void scheduler(ctx_t* ctx) { // priority based scheduler
   pcb[next].age = 0; // reset the age of the process to be executed to 0
 
   if (next != executing) { // Only change processes if needed
-    for (int i = 0; i < MAX_PROCESSES; i++) {
+    for (int i = 0; i < processes; i++) {
       if (i == executing) {
         if (pcb[executing].status == STATUS_EXECUTING) {     // If the current process is executing
           pcb[executing].status = STATUS_READY;              // update current process status
@@ -63,7 +64,7 @@ void sort_pcb_by_priority(int n) {
 void initialise_pcb(int process, int pid, uint32_t program, uint32_t memory, int priority) {
   memset( &pcb[ process ], 0, sizeof( pcb_t ) );
   pcb[ process ].pid      = pid;
-  pcb[ process ].status   = STATUS_READY;
+  pcb[ process ].status   = STATUS_CREATED;
   pcb[ process ].ctx.cpsr = 0x50;
   pcb[ process ].ctx.pc   = program;
   pcb[ process ].ctx.sp   = memory;
@@ -90,23 +91,11 @@ void initialise_timer() {
   GICD0->CTLR         = 0x00000001; // enable GIC distributor
 }
 
-
-// extern void     main_P3();
-// extern uint32_t tos_P3;
-// extern void     main_P4();
-// extern uint32_t tos_P4;
-// extern void     main_P5();
-// extern uint32_t tos_P5;
 extern void     main_console();
 extern uint32_t tos_console;
 extern uint32_t tos_user;
 
 void hilevel_handler_rst( ctx_t* ctx ) {
-
-  // initialise_pcb(0, 1, (uint32_t) (&main_P3), (uint32_t) (&tos_P3), 0);
-  // initialise_pcb(1, 2, (uint32_t) (&main_P4), (uint32_t) (&tos_P4), 5);
-  // initialise_pcb(2, 3, (uint32_t) (&main_P5), (uint32_t) (&tos_P5), 7);
-  // initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_console), 10);
 
   for (int i = 0; i < MAX_PROCESSES; i++) {
     // right now adding 0x1000 seems to add 0x4000 instead?
@@ -119,7 +108,7 @@ void hilevel_handler_rst( ctx_t* ctx ) {
                     0 );
   }
 
-  initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
+  initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 5);
   processes = 1;
 
   sort_pcb_by_priority(MAX_PROCESSES);
@@ -188,6 +177,12 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       uint32_t new_sp = ctx->sp - (executing * 0x00001000) + (processes * 0x00001000);
       pcb[processes].ctx.sp = new_sp;
 
+      // set age of child to 1000 so that it executes immediately
+      // pcb[processes].age = 1000;
+      // pcb[processes].priority = 1000;
+
+      pcb[processes].status = STATUS_READY;
+
       processes++;
       break;
     }
@@ -203,6 +198,9 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       ctx->pc = ctx->gpr[0];
       // memset( &ctx->sp, tos_user - (executing * 0x00001000), sizeof( ctx->sp ));
       ctx->sp = tos_user + (executing * 0x00001000);
+
+      // how do i set this pcb status to executing?
+
       break;
     }
 
