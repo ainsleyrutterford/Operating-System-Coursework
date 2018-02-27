@@ -209,6 +209,11 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
 
     case 0x06 : { // 0x05 => kill()
       pcb[ctx->gpr[0] - 1].status = STATUS_TERMINATED;
+      // could decrement the number of processes here but then would need a way
+      // of knowing which pcb is next available for fork?
+      // maybe could have a loop at the beginning of fork that looks thru the
+      // pcb table and finds the first pcb that is terminated or created and
+      // can create the child there. this would mean that we reuse pcb slots.
       scheduler(ctx);
     }
 
