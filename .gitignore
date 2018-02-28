@@ -1,4 +1,5 @@
 *.o
 image.bin
 image.elf
+.DS_Store
 
