@@ -92,6 +92,7 @@ void initialise_timer() {
 }
 
 extern void     main_console();
+extern void     main_IPCtest();
 extern uint32_t tos_console;
 extern uint32_t tos_user;
 
@@ -108,7 +109,10 @@ void hilevel_handler_rst( ctx_t* ctx ) {
                     0 );
   }
 
-  initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 5);
+  // initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 5);
+  // processes = 1;
+
+  initialise_pcb(0, 1, (uint32_t) (&main_IPCtest), (uint32_t) (&tos_user), 5);
   processes = 1;
 
   sort_pcb_by_priority(MAX_PROCESSES);
@@ -186,13 +190,13 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       break;
     }
 
-    case 0x04 : { // 0x04 => exit()
+    case 0x04 : { // 0x04 => exit( int x )
       pcb[ executing ].status = STATUS_TERMINATED;
       scheduler(ctx);
       break;
     }
 
-    case 0x05 : { // 0x05 => exec()
+    case 0x05 : { // 0x05 => exec( const void* x )
       // set the program counter to r0 which was set to the pointer provided
       // to the exec call which points to the program to be executed
       ctx->pc = ctx->gpr[0];
@@ -207,7 +211,7 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       break;
     }
 
-    case 0x06 : { // 0x05 => kill()
+    case 0x06 : { // 0x05 => kill( int pid, int x )
       pcb[ctx->gpr[0] - 1].status = STATUS_TERMINATED;
       // could decrement the number of processes here but then would need a way
       // of knowing which pcb is next available for fork?
@@ -215,6 +219,13 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       // pcb table and finds the first pcb that is terminated or created and
       // can create the child there. this would mean that we reuse pcb slots.
       scheduler(ctx);
+      break;
+    }
+
+    case 0x08 : { // 0x05 => pipe( void* fd )
+      int* fd = ( int* ) (ctx->gpr[ 0 ]);
+      fd[0] = 3;
+      fd[1] = 4;
     }
 
     default : {
