@@ -109,11 +109,11 @@ void hilevel_handler_rst( ctx_t* ctx ) {
                     0 );
   }
 
-  initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 5);
-  processes = 1;
-
-  // initialise_pcb(0, 1, (uint32_t) (&main_IPCtest), (uint32_t) (&tos_user), 5);
+  // initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 5);
   // processes = 1;
+
+  initialise_pcb(0, 1, (uint32_t) (&main_IPCtest), (uint32_t) (&tos_user), 5);
+  processes = 1;
 
   sort_pcb_by_priority(MAX_PROCESSES);
 
@@ -158,9 +158,9 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
         } else if (fd > 2) {
           int p = (fd / 2) - 2;
           for (int i = 0; i < n; i++) {
-            pipe[p].data[ pipe[p].writeptr + i ] = *x++; // may need to mod this with 100
+            pipe[p].data[ (pipe[p].writeptr + i) % 100 ] = *x++; // may need to mod this with 100
           }
-          pipe[p].writeptr += n; // mod 100?
+          pipe[p].writeptr = (pipe[p].writeptr + n) % 100; // mod 100?
         }
 
       ctx->gpr[ 0 ] = n;
@@ -174,10 +174,10 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
 
       int p = ((fd + 1) / 2) - 2;
       for (int i = 0; i < n; i++) {
-        *x++ = pipe[p].data[ pipe[p].readptr + i ]; // mod 100?
+        *x++ = pipe[p].data[ (pipe[p].readptr + i) % 100 ]; // mod 100?
       }
 
-      pipe[p].readptr += n; // mod 100?
+      pipe[p].readptr = (pipe[p].readptr + n) % 100; // mod 100?
       break;
     }
 
