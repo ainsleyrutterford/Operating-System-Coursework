@@ -109,11 +109,11 @@ void hilevel_handler_rst( ctx_t* ctx ) {
                     0 );
   }
 
-  // initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 5);
-  // processes = 1;
-
-  initialise_pcb(0, 1, (uint32_t) (&main_IPCtest), (uint32_t) (&tos_user), 5);
+  initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 5);
   processes = 1;
+
+  // initialise_pcb(0, 1, (uint32_t) (&main_IPCtest), (uint32_t) (&tos_user), 5);
+  // processes = 1;
 
   sort_pcb_by_priority(MAX_PROCESSES);
 
@@ -201,14 +201,14 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       pcb[processes].ctx.sp = new_sp;
 
       // set age of child to 1000 so that it executes immediately
-      // pcb[processes].age = 1000;
-      // pcb[processes].priority = 1000;
+      pcb[processes].age = 1000;
 
       // set the status of the child process to ready
       pcb[processes].status = STATUS_READY;
 
       // increment the number of processes
       processes++;
+      scheduler(ctx); // call scheduler so that the child process is started executing immediately
       break;
     }
 
