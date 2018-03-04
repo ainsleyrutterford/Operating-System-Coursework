@@ -77,6 +77,6 @@ extern void nice( pid_t pid, int x );
 
 // create pipe and put file descriptors in the array provided. return 0
 // when successful or -1 otherwise
-extern int pipe( void* fd );
+extern int pipe( int* fd );
 
 #endif

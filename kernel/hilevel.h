@@ -67,4 +67,14 @@ typedef struct {
           int age;
 } pcb_t;
 
+typedef struct {
+  char data[100]; // is there a way to make this like data[size] and then make size variable?
+  size_t current_size; // maybe this should just be int?
+  int readptr;
+  int writeptr;
+  int end;
+  int readfd;
+  int writefd; // maybe these should be one line... int fd[2]
+} pipe_t;
+
 #endif

@@ -9,14 +9,14 @@
 
 #define MAX_PROCESSES 5
 
-pcb_t pcb[MAX_PROCESSES];
-int executing = 0;
+pcb_t pcb[MAX_PROCESSES]; int executing = 0;
+pipe_t pipe[20]; int next_available = 0;
 uint32_t processes = 0;
 
 void scheduler(ctx_t* ctx) { // priority based scheduler
 
   int next = 0;
-  int max = 0;
+  int max = -1;
   for (int i = 0; i < processes; i++) {
     if (pcb[i].priority + pcb[i].age > max && // if i has highest priorty + age then make it next
         (pcb[i].status == STATUS_READY ||
@@ -151,11 +151,33 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       char*  x = ( char* )( ctx->gpr[ 1 ] );
       int    n = ( int   )( ctx->gpr[ 2 ] );
 
-      for( int i = 0; i < n; i++ ) {
-        PL011_putc( UART0, *x++, true );
-      }
+      if (fd == 1) {
+        for( int i = 0; i < n; i++ ) {
+          PL011_putc( UART0, *x++, true );
+        }
+        } else if (fd > 2) {
+          int p = (fd / 2) - 2;
+          for (int i = 0; i < n; i++) {
+            pipe[p].data[ pipe[p].writeptr + i ] = *x++; // may need to mod this with 100
+          }
+          pipe[p].writeptr += n; // mod 100?
+        }
 
       ctx->gpr[ 0 ] = n;
+      break;
+    }
+
+    case 0x02 : { // 0x02 => read( fd, x, n )
+      int    fd = ( int    ) (ctx->gpr[ 0 ]);
+      char*  x  = ( char*  ) (ctx->gpr[ 1 ]);
+      int    n  = ( int    ) (ctx->gpr[ 2 ]);
+
+      int p = ((fd + 1) / 2) - 2;
+      for (int i = 0; i < n; i++) {
+        *x++ = pipe[p].data[ pipe[p].readptr + i ]; // mod 100?
+      }
+
+      pipe[p].readptr += n; // mod 100?
       break;
     }
 
@@ -223,9 +245,21 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
     }
 
     case 0x08 : { // 0x05 => pipe( void* fd )
-      int* fd = ( int* ) (ctx->gpr[ 0 ]);
-      fd[0] = 3;
-      fd[1] = 4;
+      int* fd = (int*) (ctx->gpr[ 0 ]);
+      // either malloc for a pipe or just have a table set up already like before.
+      pipe[next_available].current_size = 0;
+      pipe[next_available].end = 0;
+      pipe[next_available].readptr = 0;
+      pipe[next_available].writeptr = 0;
+      pipe[next_available].readfd = ((next_available + 2) * 2) - 1; // is this line necessary as i do the maths in read and write anyway
+      pipe[next_available].writefd = (next_available + 2) * 2;
+      fd[0] = pipe[next_available].readfd; // this line could just be = next_available + 2 etc. and we could delete the previous line?
+      fd[1] = pipe[next_available].writefd; // altho maybe its a good idea to keep them in each pipe_t so we can check or something i dunno
+      next_available++;
+
+      ctx->gpr[ 0 ] = 0;
+
+      break;
     }
 
     default : {

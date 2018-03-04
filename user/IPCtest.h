@@ -7,4 +7,6 @@
 
 #include "libc.h"
 
+#include "PL011.h"
+
 #endif
