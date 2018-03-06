@@ -93,6 +93,7 @@ void initialise_timer() {
 
 extern void     main_console();
 extern void     main_IPCtest();
+extern void     main_philosopher();
 extern uint32_t tos_console;
 extern uint32_t tos_user;
 
@@ -112,7 +113,7 @@ void hilevel_handler_rst( ctx_t* ctx ) {
   // initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 5);
   // processes = 1;
 
-  initialise_pcb(0, 1, (uint32_t) (&main_IPCtest), (uint32_t) (&tos_user), 5);
+  initialise_pcb(0, 1, (uint32_t) (&main_philosopher), (uint32_t) (&tos_user), 5);
   processes = 1;
 
   sort_pcb_by_priority(MAX_PROCESSES);
