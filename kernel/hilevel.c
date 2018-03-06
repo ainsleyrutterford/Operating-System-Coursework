@@ -7,7 +7,7 @@
 
 #include "hilevel.h"
 
-#define MAX_PROCESSES 5
+#define MAX_PROCESSES 20
 
 pcb_t pcb[MAX_PROCESSES]; int executing = 0;
 pipe_t pipe[20]; int next_available = 0;
