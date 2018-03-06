@@ -258,7 +258,8 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       fd[1] = pipe[next_available].writefd; // altho maybe its a good idea to keep them in each pipe_t so we can check or something i dunno
       next_available++;
 
-      ctx->gpr[ 0 ] = 0;
+      // ctx->gpr[ 0 ] = 0; // meant to return 0 on success but seems to be messing up
+      // fork and stuff
 
       break;
     }
