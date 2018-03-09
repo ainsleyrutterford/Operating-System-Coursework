@@ -68,14 +68,17 @@ typedef struct {
 } pcb_t;
 
 typedef struct {
-  char data[100];
-  int    readptr;
-  int   writeptr;
+  char     data[100];
+  int        readptr;
+  int       writeptr;
+  bool can_read_from;
+  bool  can_write_to;
 } pipe_t;
 
 typedef struct {
-  int readfd, writefd;
-  pipe_t* pipe;
+  int       fd;
+  bool    read; // is it a read or a write fd
+  int  pipe_no;
 } fd_t;
 
 #endif

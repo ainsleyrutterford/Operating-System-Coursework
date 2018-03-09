@@ -11,7 +11,8 @@
 #define MAX_PIPES 20
 
 pcb_t pcb[MAX_PROCESSES]; int executing = 0;
-pipe_t pipe[MAX_PIPES]; int next_available = 0;
+pipe_t pipe[MAX_PIPES]; int next_pipe = 0;
+fd_t fds[20]; int next_fd = 0;
 uint32_t processes = 0;
 bool round_robin_flag = false;
 
@@ -125,7 +126,6 @@ void initialise_timer() {
 extern void     main_console();
 extern void     main_IPCtest();
 extern void     main_philosopher();
-extern uint32_t tos_console;
 extern uint32_t tos_user;
 
 void hilevel_handler_rst( ctx_t* ctx ) {
@@ -137,11 +137,11 @@ void hilevel_handler_rst( ctx_t* ctx ) {
     initialise_pcb( i, i+1, (uint32_t) (0), memory, 0 );
   }
 
-  initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
-  processes = 1;
-
-  // initialise_pcb(0, 1, (uint32_t) (&main_philosopher), (uint32_t) (&tos_user), 5);
+  // initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
   // processes = 1;
+
+  initialise_pcb(0, 1, (uint32_t) (&main_IPCtest), (uint32_t) (&tos_user), 5);
+  processes = 1;
 
   start_execution(ctx, 0);
 
@@ -181,7 +181,8 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
           PL011_putc( UART0, *x++, true );
         }
         } else if (fd > 2) {
-          int p = (fd / 2) - 2;
+          int p = fds[fd - 3].pipe_no;
+          // int p = (fd / 2) - 2;
           for (int i = 0; i < n; i++) {
             pipe[p].data[ (pipe[p].writeptr + i) % 100 ] = *x++; // may need to mod this with 100
           }
@@ -197,7 +198,8 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       char*  x  = ( char*  ) (ctx->gpr[ 1 ]);
       int    n  = ( int    ) (ctx->gpr[ 2 ]);
 
-      int p = ((fd + 1) / 2) - 2;
+      int p = fds[fd - 3].pipe_no;
+      // int p = ((fd + 1) / 2) - 2;
       for (int i = 0; i < n; i++) {
         *x++ = pipe[p].data[ (pipe[p].readptr + i) % 100 ]; // mod 100?
       }
@@ -280,16 +282,31 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
     }
 
     case 0x08 : { // 0x05 => pipe( void* fd )
-      int* fd = ( int* ) (ctx->gpr[ 0 ]);
-      // fd[next_available].readfd = next_available + 3;
-      // fd[next_available].pipe = &pipe[next_available];
-      // // either malloc for a pipe or just have a table set up already like before.
-      // fd[0] = ((next_available + 2) * 2) - 1; // this line could just be = next_available + 2 etc. and we could delete the previous line?
-      // fd[1] = (next_available + 2) * 2; // altho maybe its a good idea to keep them in each pipe_t so we can check or something i dunno
-      // next_available++;
 
-      // ctx->gpr[ 0 ] = 0; // meant to return 0 on success but seems to be messing up
-      // fork and stuff
+      // ctx->gpr[ 0 ] = 0; // meant to return 0 on success but seems broken
+
+      int* fd = ( int* ) (ctx->gpr[ 0 ]);
+
+      pipe[next_pipe].readptr = 0;
+      pipe[next_pipe].writeptr = 0;
+      pipe[next_pipe].can_read_from = false;
+      pipe[next_pipe].can_write_to = true;
+
+      fds[next_fd].fd      = next_fd + 3;
+      fds[next_fd].read    = true;
+      fds[next_fd].pipe_no = next_pipe;
+      fd[0] = fds[next_fd].fd;
+
+      next_fd++;
+
+      fds[next_fd].fd      = next_fd + 3;
+      fds[next_fd].read    = false;
+      fds[next_fd].pipe_no = next_pipe;
+      fd[1] = fds[next_fd].fd;
+
+      next_fd++;
+      next_pipe++;
+
 
       break;
     }
