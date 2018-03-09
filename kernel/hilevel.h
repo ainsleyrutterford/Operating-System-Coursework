@@ -73,4 +73,9 @@ typedef struct {
   int   writeptr;
 } pipe_t;
 
+typedef struct {
+  int readfd, writefd;
+  pipe_t* pipe;
+} fd_t;
+
 #endif

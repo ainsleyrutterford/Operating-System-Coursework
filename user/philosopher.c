@@ -12,7 +12,7 @@ void philosopher(int id, int id2) {
 void main_philosopher() {
   for (int i = 0; i < 16; i++) {
     int fd[2];
-    pipe(fd);
+    // pipe(fd);
     pid_t pid = fork();
     if (pid == 0) {
       // philosopher(i, i2);

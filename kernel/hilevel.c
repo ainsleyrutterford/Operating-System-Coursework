@@ -13,9 +13,35 @@
 pcb_t pcb[MAX_PROCESSES]; int executing = 0;
 pipe_t pipe[MAX_PIPES]; int next_available = 0;
 uint32_t processes = 0;
+bool round_robin_flag = false;
 
-void scheduler(ctx_t* ctx) { // priority based scheduler
+void switch_scheduler() {
+  round_robin_flag = !round_robin_flag;
+}
 
+void round_robin_scheduler(ctx_t* ctx) { // round robin scheduler
+  int next = (executing + 1) % MAX_PROCESSES;
+  while (pcb[next].status == STATUS_TERMINATED ||
+         pcb[next].status == STATUS_CREATED) {
+    next = (next + 1) % MAX_PROCESSES;
+  }
+  if (next != executing) {
+    for (int i = 0; i < processes; i++) {
+      if (i == executing) {
+        if (pcb[executing].status == STATUS_EXECUTING) {     // If the current process is executing
+          pcb[executing].status = STATUS_READY;              // update current process status
+        }
+        memcpy( &pcb[executing].ctx, ctx, sizeof( ctx_t ) ); // preserve current process
+        memcpy( ctx, &pcb[next].ctx, sizeof( ctx_t ) );      // restore next process
+        pcb[next].status = STATUS_EXECUTING;                 // update next process status
+        executing = next;                                    // update index => next process
+        break; // return early once found
+      }
+    }
+  }
+}
+
+void priority_based_scheduler(ctx_t* ctx) { // priority based scheduler
   int next = 0;
   int max = -1;
   for (int i = 0; i < processes; i++) {
@@ -44,10 +70,14 @@ void scheduler(ctx_t* ctx) { // priority based scheduler
       }
     }
   }
-
 }
 
-// Insertion sort in descending order.
+void scheduler(ctx_t* ctx, bool flag) {
+  if (flag) round_robin_scheduler(ctx);
+  else priority_based_scheduler(ctx);
+}
+
+// Insertion sort in descending order. NOT USED ATM
 void sort_pcb_by_priority(int n) {
   pcb_t key;
   int i;
@@ -113,12 +143,6 @@ void hilevel_handler_rst( ctx_t* ctx ) {
   // initialise_pcb(0, 1, (uint32_t) (&main_philosopher), (uint32_t) (&tos_user), 5);
   // processes = 1;
 
-  // for (int i = 0; i < MAX_PIPES; i++) {
-  //   initialise_pipe( i );       // causes nothing to run or something...
-  // }
-
-  sort_pcb_by_priority(MAX_PROCESSES);
-
   start_execution(ctx, 0);
 
   initialise_timer();
@@ -134,7 +158,7 @@ void hilevel_handler_irq(ctx_t* ctx) {
 
   // Handle the interrupt, then clear (or reset) the source.
   if( id == GIC_SOURCE_TIMER0 ) {
-    scheduler(ctx);
+    scheduler(ctx, round_robin_flag);
     TIMER0->Timer1IntClr = 0x01;
   }
 
@@ -209,13 +233,13 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
 
       // increment the number of processes
       processes++;
-      scheduler(ctx); // call scheduler so that the child process is started executing immediately
+      scheduler(ctx, round_robin_flag); // call scheduler so that the child process is started executing immediately
       break;
     }
 
     case 0x04 : { // 0x04 => exit( int x )
       pcb[ executing ].status = STATUS_TERMINATED;
-      scheduler(ctx);
+      scheduler(ctx, round_robin_flag);
       break;
     }
 
@@ -243,7 +267,7 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       // maybe could have a loop at the beginning of fork that looks thru the
       // pcb table and finds the first pcb that is terminated or created and
       // can create the child there. this would mean that we reuse pcb slots.
-      scheduler(ctx);
+      scheduler(ctx, round_robin_flag);
       break;
     }
 
@@ -257,6 +281,8 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
 
     case 0x08 : { // 0x05 => pipe( void* fd )
       int* fd = ( int* ) (ctx->gpr[ 0 ]);
+      // fd[next_available].readfd = next_available + 3;
+      // fd[next_available].pipe = &pipe[next_available];
       // // either malloc for a pipe or just have a table set up already like before.
       // fd[0] = ((next_available + 2) * 2) - 1; // this line could just be = next_available + 2 etc. and we could delete the previous line?
       // fd[1] = (next_available + 2) * 2; // altho maybe its a good idea to keep them in each pipe_t so we can check or something i dunno

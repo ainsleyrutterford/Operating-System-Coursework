@@ -84,6 +84,8 @@ void* load( char* x ) {
  *    would terminate the process whose PID is 3.
  */
 
+extern void switch_scheduler();
+
 void main_console() {
   char* p, x[ 1024 ];
 
@@ -104,6 +106,9 @@ void main_console() {
       int   s   = atoi( strtok( NULL, " " ) );
 
       kill( pid, s );
+    }
+    else if( 0 == strcmp( p, "switch" ) ) {
+      switch_scheduler();
     }
     else {
       puts( "unknown command\n", 16 );

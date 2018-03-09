@@ -47,3 +47,6 @@ kill-gdb    :
 
 clean       : kill-qemu kill-gdb
 	@rm -f core ${PROJECT_OBJECTS} ${PROJECT_TARGETS}
+
+include Makefile.console
+include Makefile.disk
