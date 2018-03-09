@@ -8,9 +8,10 @@
 #include "hilevel.h"
 
 #define MAX_PROCESSES 20
+#define MAX_PIPES 20
 
 pcb_t pcb[MAX_PROCESSES]; int executing = 0;
-pipe_t pipe[20]; int next_available = 0;
+pipe_t pipe[MAX_PIPES]; int next_available = 0;
 uint32_t processes = 0;
 
 void scheduler(ctx_t* ctx) { // priority based scheduler
@@ -103,18 +104,18 @@ void hilevel_handler_rst( ctx_t* ctx ) {
     // right now adding 0x1000 seems to add 0x4000 instead?
     // so for now im adding 0x400 as this seems to be equivalent to 0x1000
     uint32_t memory = (uint32_t) (&tos_user + (i * 0x00000400));
-    initialise_pcb( i,
-                    i+1,
-                    (uint32_t) (0),
-                    memory,
-                    0 );
+    initialise_pcb( i, i+1, (uint32_t) (0), memory, 0 );
   }
 
-  // initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 5);
+  initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
+  processes = 1;
+
+  // initialise_pcb(0, 1, (uint32_t) (&main_philosopher), (uint32_t) (&tos_user), 5);
   // processes = 1;
 
-  initialise_pcb(0, 1, (uint32_t) (&main_philosopher), (uint32_t) (&tos_user), 5);
-  processes = 1;
+  // for (int i = 0; i < MAX_PIPES; i++) {
+  //   initialise_pipe( i );       // causes nothing to run or something...
+  // }
 
   sort_pcb_by_priority(MAX_PROCESSES);
 
@@ -142,7 +143,6 @@ void hilevel_handler_irq(ctx_t* ctx) {
 
   return;
 }
-
 
 void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
   switch(id) {
@@ -220,12 +220,13 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
     }
 
     case 0x05 : { // 0x05 => exec( const void* x )
-      // set the program counter to r0 which was set to the pointer provided
-      // to the exec call which points to the program to be executed
-      ctx->pc = ctx->gpr[0];
-      // update the stackpointer so that it is pointing at the correct stack
-      // is this the correct stack though?
-      ctx->sp = tos_user + (executing * 0x00001000);
+      const void* x = ( const void* ) (ctx->gpr[ 0 ]);
+      if (x != NULL) { // incase load returns NULL
+        ctx->pc = ( uint32_t ) x;
+        // update the stackpointer so that it is pointing at the correct stack
+        // is this the correct stack though?
+        ctx->sp = tos_user + (executing * 0x00001000);
+      }
 
       // how do i set this pcb status to executing?
       // i think its okay because i had set the status of the child to ready
@@ -234,8 +235,9 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       break;
     }
 
-    case 0x06 : { // 0x05 => kill( int pid, int x )
-      pcb[ctx->gpr[0] - 1].status = STATUS_TERMINATED;
+    case 0x06 : { // 0x06 => kill( int pid, int x )
+      int pid = ( int ) (ctx->gpr[ 0 ]);
+      pcb[pid - 1].status = STATUS_TERMINATED;
       // could decrement the number of processes here but then would need a way
       // of knowing which pcb is next available for fork?
       // maybe could have a loop at the beginning of fork that looks thru the
@@ -245,18 +247,20 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       break;
     }
 
+    case 0x07 : { // 0x07 => nice( int pid, int x )
+      int pid = ( int ) (ctx->gpr[ 0 ]);
+      int   x = ( int ) (ctx->gpr[ 1 ]);
+      pcb[pid - 1].priority = x;
+      // scheduler(ctx); // do i actually need to call the scheduler here?
+      break;
+    }
+
     case 0x08 : { // 0x05 => pipe( void* fd )
-      int* fd = (int*) (ctx->gpr[ 0 ]);
-      // either malloc for a pipe or just have a table set up already like before.
-      pipe[next_available].current_size = 0;
-      pipe[next_available].end = 0;
-      pipe[next_available].readptr = 0;
-      pipe[next_available].writeptr = 0;
-      pipe[next_available].readfd = ((next_available + 2) * 2) - 1; // is this line necessary as i do the maths in read and write anyway
-      pipe[next_available].writefd = (next_available + 2) * 2;
-      fd[0] = pipe[next_available].readfd; // this line could just be = next_available + 2 etc. and we could delete the previous line?
-      fd[1] = pipe[next_available].writefd; // altho maybe its a good idea to keep them in each pipe_t so we can check or something i dunno
-      next_available++;
+      int* fd = ( int* ) (ctx->gpr[ 0 ]);
+      // // either malloc for a pipe or just have a table set up already like before.
+      // fd[0] = ((next_available + 2) * 2) - 1; // this line could just be = next_available + 2 etc. and we could delete the previous line?
+      // fd[1] = (next_available + 2) * 2; // altho maybe its a good idea to keep them in each pipe_t so we can check or something i dunno
+      // next_available++;
 
       // ctx->gpr[ 0 ] = 0; // meant to return 0 on success but seems to be messing up
       // fork and stuff

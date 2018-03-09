@@ -148,7 +148,7 @@ void nice( int pid, int x ) {
   return;
 }
 
-int pipe( int* fd ) {
+void pipe( int fd[2] ) {
   int r;
 
   asm volatile( "mov r0, %1 \n" // assign r0 = fd
@@ -158,5 +158,6 @@ int pipe( int* fd ) {
               : "I" (SYS_PIPE), "r" (fd)
               : "r0");
 
-  return r;
+  // return r;
+  return;
 }

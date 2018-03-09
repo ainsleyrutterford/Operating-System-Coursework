@@ -95,6 +95,8 @@ void main_console() {
 
       if( 0 == pid ) {
         exec( load( strtok( NULL, " " ) ) );
+      } else {
+        nice( pid, atoi( strtok( NULL, " " ) ) );
       }
     }
     else if( 0 == strcmp( p, "terminate" ) ) {

@@ -1,6 +1,6 @@
 #include "philosopher.h"
 
-void philosopher(int id) {
+void philosopher(int id, int id2) {
   write( STDOUT_FILENO, "philosopher \n", 12 );
   char buffer[3];
   itoa( buffer, id );
@@ -10,12 +10,18 @@ void philosopher(int id) {
 }
 
 void main_philosopher() {
-  int fd[2];
   for (int i = 0; i < 16; i++) {
+    int fd[2];
     pipe(fd);
     pid_t pid = fork();
     if (pid == 0) {
-      philosopher(i);
+      // philosopher(i, i2);
+      write( STDOUT_FILENO, "philosopher \n", 12 );
+      char buffer[3];
+      itoa( buffer, i );
+      write( STDOUT_FILENO, buffer, 3 );
+      write( STDOUT_FILENO, "\n", 1 );
+      exit(EXIT_SUCCESS);
     }
   }
 }
