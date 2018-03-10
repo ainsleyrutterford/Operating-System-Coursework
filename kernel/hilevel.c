@@ -16,8 +16,9 @@ fd_t fds[20]; int next_fd = 0;
 uint32_t processes = 0;
 bool round_robin_flag = false;
 
-void switch_scheduler() {
+bool switch_scheduler() {
   round_robin_flag = !round_robin_flag;
+  return round_robin_flag;
 }
 
 void round_robin_scheduler(ctx_t* ctx) { // round robin scheduler
@@ -137,11 +138,11 @@ void hilevel_handler_rst( ctx_t* ctx ) {
     initialise_pcb( i, i+1, (uint32_t) (0), memory, 0 );
   }
 
-  // initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
-  // processes = 1;
-
-  initialise_pcb(0, 1, (uint32_t) (&main_IPCtest), (uint32_t) (&tos_user), 5);
+  initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
   processes = 1;
+
+  // initialise_pcb(0, 1, (uint32_t) (&main_philosopher), (uint32_t) (&tos_user), 5);
+  // processes = 1;
 
   start_execution(ctx, 0);
 

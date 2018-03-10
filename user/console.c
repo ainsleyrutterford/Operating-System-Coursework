@@ -84,7 +84,7 @@ void* load( char* x ) {
  *    would terminate the process whose PID is 3.
  */
 
-extern void switch_scheduler();
+extern bool switch_scheduler();
 
 void main_console() {
   char* p, x[ 1024 ];
@@ -108,7 +108,9 @@ void main_console() {
       kill( pid, s );
     }
     else if( 0 == strcmp( p, "switch" ) ) {
-      switch_scheduler();
+      bool round_robin = switch_scheduler();
+      if (round_robin) puts( "switched to round robin scheduler\n", 34 );
+      else puts( "switched to priority based scheduler\n", 37 );
     }
     else {
       puts( "unknown command\n", 16 );

@@ -6,6 +6,7 @@ void philosopher(int id, int id2) {
   itoa( buffer, id );
   write( STDOUT_FILENO, buffer, 3 );
   write( STDOUT_FILENO, "\n", 1 );
+  write( STDOUT_FILENO, "\n", 1 );
   exit(EXIT_SUCCESS);
 }
 
