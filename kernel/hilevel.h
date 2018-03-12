@@ -68,7 +68,7 @@ typedef struct {
 } pcb_t;
 
 typedef struct {
-  char     data[100];
+  // char     data[100];
   int        readptr;
   int       writeptr;
   bool can_read_from;

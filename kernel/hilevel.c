@@ -138,11 +138,11 @@ void hilevel_handler_rst( ctx_t* ctx ) {
     initialise_pcb( i, i+1, (uint32_t) (0), memory, 0 );
   }
 
-  initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
-  processes = 1;
-
-  // initialise_pcb(0, 1, (uint32_t) (&main_philosopher), (uint32_t) (&tos_user), 5);
+  // initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
   // processes = 1;
+
+  initialise_pcb(0, 1, (uint32_t) (&main_philosopher), (uint32_t) (&tos_user), 5);
+  processes = 1;
 
   start_execution(ctx, 0);
 
@@ -181,11 +181,11 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
         for( int i = 0; i < n; i++ ) {
           PL011_putc( UART0, *x++, true );
         }
-        } else if (fd > 2) {
+      } else if (fd > 2) {
           int p = fds[fd - 3].pipe_no;
           // int p = (fd / 2) - 2;
           for (int i = 0; i < n; i++) {
-            pipe[p].data[ (pipe[p].writeptr + i) % 100 ] = *x++; // may need to mod this with 100
+            // pipe[p].data[ (pipe[p].writeptr + i) % 100 ] = *x++; // may need to mod this with 100
           }
           pipe[p].writeptr = (pipe[p].writeptr + n) % 100; // mod 100?
         }
@@ -202,7 +202,7 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       int p = fds[fd - 3].pipe_no;
       // int p = ((fd + 1) / 2) - 2;
       for (int i = 0; i < n; i++) {
-        *x++ = pipe[p].data[ (pipe[p].readptr + i) % 100 ]; // mod 100?
+        // *x++ = pipe[p].data[ (pipe[p].readptr + i) % 100 ]; // mod 100?
       }
 
       pipe[p].readptr = (pipe[p].readptr + n) % 100; // mod 100?
@@ -288,6 +288,7 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
 
       int* fd = ( int* ) (ctx->gpr[ 0 ]);
 
+      // memset( &pipe[next_pipe], 0, sizeof( pipe_t ) );
       pipe[next_pipe].readptr = 0;
       pipe[next_pipe].writeptr = 0;
       pipe[next_pipe].can_read_from = false;
@@ -307,7 +308,6 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
 
       next_fd++;
       next_pipe++;
-
 
       break;
     }
