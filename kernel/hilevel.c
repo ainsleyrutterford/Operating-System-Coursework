@@ -15,6 +15,7 @@ pipe_t pipe[MAX_PIPES]; int next_pipe = 0;
 fd_t fds[20]; int next_fd = 0;
 uint32_t processes = 0;
 bool round_robin_flag = false;
+char data[20][100];
 
 bool switch_scheduler() {
   round_robin_flag = !round_robin_flag;
@@ -186,6 +187,7 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
           // int p = (fd / 2) - 2;
           for (int i = 0; i < n; i++) {
             // pipe[p].data[ (pipe[p].writeptr + i) % 100 ] = *x++; // may need to mod this with 100
+            data[p][ (pipe[p].writeptr + i) % 100 ] = *x++; // may need to mod this with 100
           }
           pipe[p].writeptr = (pipe[p].writeptr + n) % 100; // mod 100?
         }
@@ -203,6 +205,7 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       // int p = ((fd + 1) / 2) - 2;
       for (int i = 0; i < n; i++) {
         // *x++ = pipe[p].data[ (pipe[p].readptr + i) % 100 ]; // mod 100?
+        *x++ = data[p][ (pipe[p].readptr + i) % 100 ]; // mod 100?
       }
 
       pipe[p].readptr = (pipe[p].readptr + n) % 100; // mod 100?
