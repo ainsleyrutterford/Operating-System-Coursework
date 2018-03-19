@@ -71,8 +71,7 @@ typedef struct {
   // char     data[100];
   int        readptr;
   int       writeptr;
-  bool can_read_from;
-  bool  can_write_to;
+  int       blocking;
 } pipe_t;
 
 typedef struct {

@@ -24,8 +24,7 @@ bool switch_scheduler() {
 
 void round_robin_scheduler(ctx_t* ctx) { // round robin scheduler
   int next = (executing + 1) % MAX_PROCESSES;
-  while (pcb[next].status == STATUS_TERMINATED ||
-         pcb[next].status == STATUS_CREATED) {
+  while (pcb[next].status != STATUS_READY) {
     next = (next + 1) % MAX_PROCESSES;
   }
   if (next != executing) {
@@ -49,8 +48,7 @@ void priority_based_scheduler(ctx_t* ctx) { // priority based scheduler
   int max = -1;
   for (int i = 0; i < processes; i++) {
     if (pcb[i].priority + pcb[i].age > max && // if i has highest priorty + age then make it next
-        (pcb[i].status == STATUS_READY ||
-         pcb[i].status == STATUS_WAITING)) { // only accept ready or waiting processes
+       (pcb[i].status == STATUS_READY)) { // only accept ready processes
       max = pcb[i].priority + pcb[i].age;     // update max total priority
       next = i;                               // update next if i is the max
     }
@@ -75,8 +73,8 @@ void priority_based_scheduler(ctx_t* ctx) { // priority based scheduler
   }
 }
 
-void scheduler(ctx_t* ctx, bool flag) {
-  if (flag) round_robin_scheduler(ctx);
+void scheduler(ctx_t* ctx) {
+  if (round_robin_flag) round_robin_scheduler(ctx);
   else priority_based_scheduler(ctx);
 }
 
@@ -142,7 +140,7 @@ void hilevel_handler_rst( ctx_t* ctx ) {
   // initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
   // processes = 1;
 
-  initialise_pcb(0, 1, (uint32_t) (&main_philosopher), (uint32_t) (&tos_user), 5);
+  initialise_pcb(0, 1, (uint32_t) (&main_IPCtest), (uint32_t) (&tos_user), 5);
   processes = 1;
 
   start_execution(ctx, 0);
@@ -160,7 +158,7 @@ void hilevel_handler_irq(ctx_t* ctx) {
 
   // Handle the interrupt, then clear (or reset) the source.
   if( id == GIC_SOURCE_TIMER0 ) {
-    scheduler(ctx, round_robin_flag);
+    scheduler(ctx);
     TIMER0->Timer1IntClr = 0x01;
   }
 
@@ -178,13 +176,19 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       char*  x = ( char* )( ctx->gpr[ 1 ] );
       int    n = ( int   )( ctx->gpr[ 2 ] );
 
+      bool call_scheduler = false;
+
       if (fd == 1) {
         for( int i = 0; i < n; i++ ) {
           PL011_putc( UART0, *x++, true );
         }
       } else if (fd > 2) {
           int p = fds[fd - 3].pipe_no;
-          // int p = (fd / 2) - 2;
+          if (pipe[p].blocking != -1) {
+            PL011_putc( UART0, 'z', true );
+            pcb[pipe[p].blocking].status = STATUS_READY;
+            call_scheduler = true;
+          }
           for (int i = 0; i < n; i++) {
             // pipe[p].data[ (pipe[p].writeptr + i) % 100 ] = *x++; // may need to mod this with 100
             data[p][ (pipe[p].writeptr + i) % 100 ] = *x++; // may need to mod this with 100
@@ -193,22 +197,34 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
         }
 
       ctx->gpr[ 0 ] = n;
+      if (call_scheduler) {
+        scheduler(ctx);
+      }
       break;
     }
 
     case 0x02 : { // 0x02 => read( fd, x, n )
-      int    fd = ( int    ) (ctx->gpr[ 0 ]);
-      char*  x  = ( char*  ) (ctx->gpr[ 1 ]);
-      int    n  = ( int    ) (ctx->gpr[ 2 ]);
+      int    fd = ( int   ) (ctx->gpr[ 0 ]);
+      char*  x  = ( char* ) (ctx->gpr[ 1 ]);
+      int    n  = ( int   ) (ctx->gpr[ 2 ]);
 
       int p = fds[fd - 3].pipe_no;
-      // int p = ((fd + 1) / 2) - 2;
-      for (int i = 0; i < n; i++) {
-        // *x++ = pipe[p].data[ (pipe[p].readptr + i) % 100 ]; // mod 100?
-        *x++ = data[p][ (pipe[p].readptr + i) % 100 ]; // mod 100?
-      }
+      if (pipe[p].blocking == executing) {
+        for (int i = 0; i < n; i++) {
+          // *x++ = pipe[p].data[ (pipe[p].readptr + i) % 100 ]; // mod 100?
+          *x++ = data[p][ (pipe[p].readptr + i) % 100 ]; // mod 100?
+        }
+        pipe[p].readptr = (pipe[p].readptr + n) % 100; // mod 100?
 
-      pipe[p].readptr = (pipe[p].readptr + n) % 100; // mod 100?
+        pipe[p].blocking = -1;
+      } else {
+        pcb[executing].status = STATUS_WAITING;
+        pipe[p].blocking = executing;
+        // ctx->pc -= 1; // might be 1. this seemed to work too?
+        ctx->pc -= 12; // this seems to be the amount a read call takes.
+        memcpy( &pcb[executing].ctx, ctx, sizeof( ctx_t ) );
+        scheduler(ctx);
+      }
       break;
     }
 
@@ -239,13 +255,13 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
 
       // increment the number of processes
       processes++;
-      scheduler(ctx, round_robin_flag); // call scheduler so that the child process is started executing immediately
+      scheduler(ctx); // call scheduler so that the child process is started executing immediately
       break;
     }
 
     case 0x04 : { // 0x04 => exit( int x )
       pcb[ executing ].status = STATUS_TERMINATED;
-      scheduler(ctx, round_robin_flag);
+      scheduler(ctx);
       break;
     }
 
@@ -273,7 +289,7 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       // maybe could have a loop at the beginning of fork that looks thru the
       // pcb table and finds the first pcb that is terminated or created and
       // can create the child there. this would mean that we reuse pcb slots.
-      scheduler(ctx, round_robin_flag);
+      scheduler(ctx);
       break;
     }
 
@@ -294,8 +310,7 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       // memset( &pipe[next_pipe], 0, sizeof( pipe_t ) );
       pipe[next_pipe].readptr = 0;
       pipe[next_pipe].writeptr = 0;
-      pipe[next_pipe].can_read_from = false;
-      pipe[next_pipe].can_write_to = true;
+      pipe[next_pipe].blocking = -1;
 
       fds[next_fd].fd      = next_fd + 3;
       fds[next_fd].read    = true;
