@@ -184,16 +184,22 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
         }
       } else if (fd > 2) {
           int p = fds[fd - 3].pipe_no;
-          if (pipe[p].blocking != -1) {
-            PL011_putc( UART0, 'z', true );
-            pcb[pipe[p].blocking].status = STATUS_READY;
-            call_scheduler = true;
-          }
           for (int i = 0; i < n; i++) {
             // pipe[p].data[ (pipe[p].writeptr + i) % 100 ] = *x++; // may need to mod this with 100
             data[p][ (pipe[p].writeptr + i) % 100 ] = *x++; // may need to mod this with 100
           }
           pipe[p].writeptr = (pipe[p].writeptr + n) % 100; // mod 100?
+
+          pipe[p].size = (pipe[p].size + n) % 100;
+          if (pipe[p].blocking != -1) { // if this pipe is blocking anything
+            pipe[p].amount_blocked -= n;
+            if (pipe[p].amount_blocked <= 0) {
+              pcb[pipe[p].blocking].status = STATUS_READY;
+              pcb[pipe[p].blocking].age += 100; // so it will be executed next
+              call_scheduler = true;
+              pipe[p].blocking = -1; // now blocking nothing
+            }
+          }
         }
 
       ctx->gpr[ 0 ] = n;
@@ -209,21 +215,21 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       int    n  = ( int   ) (ctx->gpr[ 2 ]);
 
       int p = fds[fd - 3].pipe_no;
-      if (pipe[p].blocking == executing) {
+      if (n > pipe[p].size) {
+        pcb[executing].status = STATUS_WAITING;
+        pipe[p].blocking = executing;
+        pipe[p].amount_blocked = n - pipe[p].size;
+        ctx->pc -= 12;
+        memcpy( &pcb[executing].ctx, ctx, sizeof( ctx_t ) );
+        scheduler(ctx);
+      } else {
         for (int i = 0; i < n; i++) {
           // *x++ = pipe[p].data[ (pipe[p].readptr + i) % 100 ]; // mod 100?
           *x++ = data[p][ (pipe[p].readptr + i) % 100 ]; // mod 100?
         }
         pipe[p].readptr = (pipe[p].readptr + n) % 100; // mod 100?
 
-        pipe[p].blocking = -1;
-      } else {
-        pcb[executing].status = STATUS_WAITING;
-        pipe[p].blocking = executing;
-        // ctx->pc -= 1; // might be 1. this seemed to work too?
-        ctx->pc -= 12; // this seems to be the amount a read call takes.
-        memcpy( &pcb[executing].ctx, ctx, sizeof( ctx_t ) );
-        scheduler(ctx);
+        pipe[p].size -= n;
       }
       break;
     }
@@ -311,6 +317,8 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       pipe[next_pipe].readptr = 0;
       pipe[next_pipe].writeptr = 0;
       pipe[next_pipe].blocking = -1;
+      pipe[next_pipe].amount_blocked = 0;
+      pipe[next_pipe].size = 0;
 
       fds[next_fd].fd      = next_fd + 3;
       fds[next_fd].read    = true;

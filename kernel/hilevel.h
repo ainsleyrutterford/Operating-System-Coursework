@@ -72,6 +72,8 @@ typedef struct {
   int        readptr;
   int       writeptr;
   int       blocking;
+  int amount_blocked;
+  int           size;
 } pipe_t;
 
 typedef struct {
