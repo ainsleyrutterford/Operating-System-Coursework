@@ -16,6 +16,7 @@ fd_t fds[20]; int next_fd = 0;
 uint32_t processes = 0;
 bool round_robin_flag = false;
 char data[20][100];
+uint32_t stacks[MAX_PROCESSES];
 
 bool switch_scheduler() {
   round_robin_flag = !round_robin_flag;
@@ -130,11 +131,17 @@ extern uint32_t tos_user;
 
 void hilevel_handler_rst( ctx_t* ctx ) {
 
+  stacks[0] = (uint32_t) (&tos_user);
+
+  for (int i = 1; i < MAX_PROCESSES; i++) {
+    stacks[i] = stacks[i - 1] + 0x00001000;
+  }
+
   for (int i = 0; i < MAX_PROCESSES; i++) {
     // right now adding 0x1000 seems to add 0x4000 instead?
     // so for now im adding 0x400 as this seems to be equivalent to 0x1000
-    uint32_t memory = (uint32_t) (&tos_user + (i * 0x00000400));
-    initialise_pcb( i, i+1, (uint32_t) (0), memory, 0 );
+    // uint32_t memory = (uint32_t) (&tos_user + (i * 0x00000400));
+    initialise_pcb( i, i+1, (uint32_t) (0), stacks[i], 0 );
   }
 
   // initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
@@ -245,8 +252,10 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       ctx->gpr[0] = processes + 1;
 
       // copy the stack of the parent process to the stack of the child process
-      uint32_t* child_stack = &tos_user + (processes * 0x00001000);
-      uint32_t* parent_stack = &tos_user + (executing * 0x00001000);
+      // uint32_t* child_stack = &tos_user + (processes * 0x00001000);
+      // uint32_t* parent_stack = &tos_user + (executing * 0x00001000);
+      uint32_t* child_stack = (uint32_t*) (stacks[processes]);
+      uint32_t* parent_stack = (uint32_t*) (stacks[executing]);
       memcpy( child_stack, parent_stack, 0x00001000);
 
       // set stack pointer of child process to correct stack pointer
@@ -266,6 +275,7 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
     }
 
     case 0x04 : { // 0x04 => exit( int x )
+      initialise_pcb(executing, executing + 1, 0, stacks[executing + 1], 0);
       pcb[ executing ].status = STATUS_TERMINATED;
       scheduler(ctx);
       break;
@@ -277,7 +287,8 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
         ctx->pc = ( uint32_t ) x;
         // update the stackpointer so that it is pointing at the correct stack
         // is this the correct stack though?
-        ctx->sp = tos_user + (executing * 0x00001000);
+        // ctx->sp = tos_user + (executing * 0x00001000);
+        ctx->sp = stacks[executing];
       }
 
       // how do i set this pcb status to executing?
@@ -317,8 +328,15 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       pipe[next_pipe].readptr = 0;
       pipe[next_pipe].writeptr = 0;
       pipe[next_pipe].blocking = -1;
-      pipe[next_pipe].amount_blocked = 0;
+      // pipe[next_pipe].amount_blocked = 0; // this or size is casuing error
       pipe[next_pipe].size = 0;
+
+      // when amount blocked is commented out it works
+      // when size is commented out it runs but doesnt work
+      // when neither are commented out, pipe seems to delete itself
+      // when trying to branch back to the end of the pipe call which is
+      // bx lr, its now andeq r0, r0, r0
+      // but every other call like nice or write are still in tact?
 
       fds[next_fd].fd      = next_fd + 3;
       fds[next_fd].read    = true;

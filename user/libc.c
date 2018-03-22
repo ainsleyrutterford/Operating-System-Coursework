@@ -148,16 +148,13 @@ void nice( int pid, int x ) {
   return;
 }
 
-void pipe( int fd[2] ) {
-  int r;
+void pipe( int* fd ) {
 
   asm volatile( "mov r0, %1 \n" // assign r0 = fd
                 "svc %0     \n" // make system call SYS_PIPE
-                // "mov %0, r0 \n" // assign r  = r0 // should return but cant
-              : //"=r" (r)                           // atm cos messes up fork
+              :
               : "I" (SYS_PIPE), "r" (fd)
               : "r0");
-
-  // return r;
+              
   return;
 }
