@@ -30,13 +30,13 @@ void round_robin_scheduler(ctx_t* ctx) { // round robin scheduler
     next = (next + 1) % MAX_PROCESSES;
   }
   if (next != executing) {
-        if (pcb[executing].status == STATUS_EXECUTING) {     // If the current process is executing
-          pcb[executing].status = STATUS_READY;              // update current process status
-        }
-        memcpy( &pcb[executing].ctx, ctx, sizeof( ctx_t ) ); // preserve current process
-        memcpy( ctx, &pcb[next].ctx, sizeof( ctx_t ) );      // restore next process
-        pcb[next].status = STATUS_EXECUTING;                 // update next process status
-        executing = next;                                    // update index => next process
+    if (pcb[executing].status == STATUS_EXECUTING) {     // If the current process is executing
+      pcb[executing].status = STATUS_READY;              // update current process status
+    }
+    memcpy( &pcb[executing].ctx, ctx, sizeof( ctx_t ) ); // preserve current process
+    memcpy( ctx, &pcb[next].ctx, sizeof( ctx_t ) );      // restore next process
+    pcb[next].status = STATUS_EXECUTING;                 // update next process status
+    executing = next;                                    // update index => next process
   }
 }
 
@@ -55,13 +55,13 @@ void priority_based_scheduler(ctx_t* ctx) { // priority based scheduler
   pcb[next].age = 0; // reset the age of the process to be executed to 0
 
   if (next != executing) { // Only change processes if needed
-        if (pcb[executing].status == STATUS_EXECUTING) {     // If the current process is executing
-          pcb[executing].status = STATUS_READY;              // update current process status
-        }
-        memcpy( &pcb[executing].ctx, ctx, sizeof( ctx_t ) ); // preserve current process
-        memcpy( ctx, &pcb[next].ctx, sizeof( ctx_t ) );      // restore next process
-        pcb[next].status = STATUS_EXECUTING;                 // update next process status
-        executing = next;                                    // update index => next process
+      if (pcb[executing].status == STATUS_EXECUTING) {     // If the current process is executing
+        pcb[executing].status = STATUS_READY;              // update current process status
+      }
+      memcpy( &pcb[executing].ctx, ctx, sizeof( ctx_t ) ); // preserve current process
+      memcpy( ctx, &pcb[next].ctx, sizeof( ctx_t ) );      // restore next process
+      pcb[next].status = STATUS_EXECUTING;                 // update next process status
+      executing = next;                                    // update index => next process
   }
 }
 
@@ -133,11 +133,11 @@ void hilevel_handler_rst( ctx_t* ctx ) {
     memset(&pipes[i], 0, sizeof(pipe_t));
   }
 
-  initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
-  processes = 1;
-
-  // initialise_pcb(0, 1, (uint32_t) (&main_philosopher), (uint32_t) (&tos_user), 5);
+  // initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
   // processes = 1;
+
+  initialise_pcb(0, 1, (uint32_t) (&main_philosopher), (uint32_t) (&tos_user), 5);
+  processes = 1;
 
   start_execution(ctx, 0);
 
