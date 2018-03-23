@@ -9,15 +9,13 @@
 
 #define MAX_PROCESSES 20
 #define MAX_PIPES 20
-#define PIPE_FILENO   ( 3 )
+#define PIPE_FILENO 3
 
 pcb_t pcb[MAX_PROCESSES]; int executing = 0;
-pipe_t pipe[MAX_PIPES]; int next_pipe = 0;
-pipe_t* pipe_ptr = pipe;
-fd_t fds[20]; int next_fd = 0;
+pipe_t pipes[MAX_PIPES]; int next_pipe = 0;
+fd_t fds[40]; int next_fd = 0;
 uint32_t processes = 0;
 bool round_robin_flag = false;
-char data[20][100];
 uint32_t stacks[MAX_PROCESSES];
 
 bool switch_scheduler() {
@@ -148,13 +146,13 @@ void hilevel_handler_rst( ctx_t* ctx ) {
 
   for (int i = 0; i < MAX_PIPES; i++)
   {
-    memset(&pipe[i], 0, sizeof(pipe_t));
+    memset(&pipes[i], 0, sizeof(pipe_t));
   }
 
   // initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
   // processes = 1;
 
-  initialise_pcb(0, 1, (uint32_t) (&main_IPCtest), (uint32_t) (&tos_user), 5);
+  initialise_pcb(0, 1, (uint32_t) (&main_philosopher), (uint32_t) (&tos_user), 5);
   processes = 1;
 
   start_execution(ctx, 0);
@@ -200,18 +198,18 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
           int p = fds[fd - PIPE_FILENO].pipe_no;
           for (int i = 0; i < n; i++) {
             // pipe[p].data[ (pipe[p].writeptr + i) % 100 ] = *x++; // may need to mod this with 100
-            data[p][ (pipe[p].writeptr + i) % 100 ] = *x++; // may need to mod this with 100
+            pipes[p].data[ (pipes[p].writeptr + i) % 100 ] = *x++; // may need to mod this with 100
           }
-          pipe[p].writeptr = (pipe[p].writeptr + n) % 100; // mod 100?
+          pipes[p].writeptr = (pipes[p].writeptr + n) % 100; // mod 100?
 
-          pipe[p].size = (pipe[p].size + n) % 100;
-          if (pipe[p].blocking != -1) { // if this pipe is blocking anything
-            pipe[p].amount_blocked -= n;
-            if (pipe[p].amount_blocked <= 0) {
-              pcb[pipe[p].blocking].status = STATUS_READY;
-              pcb[pipe[p].blocking].age += 100; // so it will be executed next
+          pipes[p].size = (pipes[p].size + n) % 100;
+          if (pipes[p].blocking != -1) { // if this pipe is blocking anything
+            pipes[p].amount_blocked -= n;
+            if (pipes[p].amount_blocked <= 0) {
+              pcb[pipes[p].blocking].status = STATUS_READY;
+              pcb[pipes[p].blocking].age += 100; // so it will be executed next
               call_scheduler = true;
-              pipe[p].blocking = -1; // now blocking nothing
+              pipes[p].blocking = -1; // now blocking nothing
             }
           }
         }
@@ -229,21 +227,21 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       int    n  = ( int   ) (ctx->gpr[ 2 ]);
 
       int p = fds[fd - 3].pipe_no;
-      if (n > pipe[p].size) {
+      if (n > pipes[p].size) {
         pcb[executing].status = STATUS_WAITING;
-        pipe[p].blocking = executing;
-        pipe[p].amount_blocked = n - pipe[p].size;
+        pipes[p].blocking = executing;
+        pipes[p].amount_blocked = n - pipes[p].size;
         ctx->pc -= 12;
         memcpy( &pcb[executing].ctx, ctx, sizeof( ctx_t ) );
         scheduler(ctx);
       } else {
         for (int i = 0; i < n; i++) {
           // *x++ = pipe[p].data[ (pipe[p].readptr + i) % 100 ]; // mod 100?
-          *x++ = data[p][ (pipe[p].readptr + i) % 100 ]; // mod 100?
+          *x++ = pipes[p].data[ (pipes[p].readptr + i) % 100 ]; // mod 100?
         }
-        pipe[p].readptr = (pipe[p].readptr + n) % 100; // mod 100?
+        pipes[p].readptr = (pipes[p].readptr + n) % 100; // mod 100?
 
-        pipe[p].size -= n;
+        pipes[p].size -= n;
       }
       break;
     }
@@ -332,11 +330,11 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       int* fd = ( int* ) (ctx->gpr[ 0 ]);
 
       // memset( &pipe[next_pipe], 0, sizeof( pipe_t ) );
-      pipe[next_pipe].readptr = 0;
-      pipe[next_pipe].writeptr = 0;
-      pipe[next_pipe].blocking = -1;
-      pipe[next_pipe].amount_blocked = 0; // this or size is casuing error
-      pipe[next_pipe].size = 0;
+      pipes[next_pipe].readptr = 0;
+      pipes[next_pipe].writeptr = 0;
+      pipes[next_pipe].blocking = -1;
+      pipes[next_pipe].amount_blocked = 0; // this or size is casuing error
+      pipes[next_pipe].size = 0;
 
       // when amount blocked is commented out it works
       // when size is commented out it runs but doesnt work
