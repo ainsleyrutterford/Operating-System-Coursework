@@ -7,13 +7,14 @@
 
 #include "hilevel.h"
 
-#define MAX_PROCESSES 20
-#define MAX_PIPES 20
+#define MAX_PROCESSES 40
+#define MAX_PIPES 40
+#define MAX_FDS 40
 #define PIPE_FILENO 3
 
 pcb_t pcb[MAX_PROCESSES]; int executing = 0;
 pipe_t pipes[MAX_PIPES]; int next_pipe = 0;
-fd_t fds[40]; int next_fd = 0;
+fd_t fds[MAX_FDS]; int next_fd = 0;
 uint32_t processes = 0;
 bool round_robin_flag = false;
 uint32_t stacks[MAX_PROCESSES];
@@ -135,25 +136,18 @@ void hilevel_handler_rst( ctx_t* ctx ) {
 
   for (int i = 1; i < MAX_PROCESSES; i++) {
     stacks[i] = stacks[i - 1] + 0x00001000;
+    initialise_pcb( i, i+1, 0, stacks[i], 0 );
   }
 
-  for (int i = 0; i < MAX_PROCESSES; i++) {
-    // right now adding 0x1000 seems to add 0x4000 instead?
-    // so for now im adding 0x400 as this seems to be equivalent to 0x1000
-    // uint32_t memory = (uint32_t) (&tos_user + (i * 0x00000400));
-    initialise_pcb( i, i+1, (uint32_t) (0), stacks[i], 0 );
-  }
-
-  for (int i = 0; i < MAX_PIPES; i++)
-  {
+  for (int i = 0; i < MAX_PIPES; i++) {
     memset(&pipes[i], 0, sizeof(pipe_t));
   }
 
-  // initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
-  // processes = 1;
-
-  initialise_pcb(0, 1, (uint32_t) (&main_philosopher), (uint32_t) (&tos_user), 5);
+  initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
   processes = 1;
+
+  // initialise_pcb(0, 1, (uint32_t) (&main_philosopher), (uint32_t) (&tos_user), 5);
+  // processes = 1;
 
   start_execution(ctx, 0);
 
@@ -333,15 +327,8 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       pipes[next_pipe].readptr = 0;
       pipes[next_pipe].writeptr = 0;
       pipes[next_pipe].blocking = -1;
-      pipes[next_pipe].amount_blocked = 0; // this or size is casuing error
+      pipes[next_pipe].amount_blocked = 0;
       pipes[next_pipe].size = 0;
-
-      // when amount blocked is commented out it works
-      // when size is commented out it runs but doesnt work
-      // when neither are commented out, pipe seems to delete itself
-      // when trying to branch back to the end of the pipe call which is
-      // bx lr, its now andeq r0, r0, r0
-      // but every other call like nice or write are still in tact?
 
       fds[next_fd].fd      = next_fd + PIPE_FILENO;
       fds[next_fd].read    = true;
