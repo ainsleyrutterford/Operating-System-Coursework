@@ -30,8 +30,6 @@ void round_robin_scheduler(ctx_t* ctx) { // round robin scheduler
     next = (next + 1) % MAX_PROCESSES;
   }
   if (next != executing) {
-    for (int i = 0; i < processes; i++) {
-      if (i == executing) {
         if (pcb[executing].status == STATUS_EXECUTING) {     // If the current process is executing
           pcb[executing].status = STATUS_READY;              // update current process status
         }
@@ -39,16 +37,13 @@ void round_robin_scheduler(ctx_t* ctx) { // round robin scheduler
         memcpy( ctx, &pcb[next].ctx, sizeof( ctx_t ) );      // restore next process
         pcb[next].status = STATUS_EXECUTING;                 // update next process status
         executing = next;                                    // update index => next process
-        break; // return early once found
-      }
-    }
   }
 }
 
 void priority_based_scheduler(ctx_t* ctx) { // priority based scheduler
   int next = 0;
   int max = -1;
-  for (int i = 0; i < processes; i++) {
+  for (int i = 0; i < MAX_PROCESSES; i++) {
     if (pcb[i].priority + pcb[i].age > max && // if i has highest priorty + age then make it next
        (pcb[i].status == STATUS_READY)) { // only accept ready processes
       max = pcb[i].priority + pcb[i].age;     // update max total priority
@@ -60,8 +55,6 @@ void priority_based_scheduler(ctx_t* ctx) { // priority based scheduler
   pcb[next].age = 0; // reset the age of the process to be executed to 0
 
   if (next != executing) { // Only change processes if needed
-    for (int i = 0; i < processes; i++) {
-      if (i == executing) {
         if (pcb[executing].status == STATUS_EXECUTING) {     // If the current process is executing
           pcb[executing].status = STATUS_READY;              // update current process status
         }
@@ -69,9 +62,6 @@ void priority_based_scheduler(ctx_t* ctx) { // priority based scheduler
         memcpy( ctx, &pcb[next].ctx, sizeof( ctx_t ) );      // restore next process
         pcb[next].status = STATUS_EXECUTING;                 // update next process status
         executing = next;                                    // update index => next process
-        break; // return early once found
-      }
-    }
   }
 }
 
@@ -251,8 +241,6 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       ctx->gpr[0] = processes + 1;
 
       // copy the stack of the parent process to the stack of the child process
-      // uint32_t* child_stack = &tos_user + (processes * 0x00001000);
-      // uint32_t* parent_stack = &tos_user + (executing * 0x00001000);
       uint32_t* child_stack = (uint32_t*) (stacks[processes]);
       uint32_t* parent_stack = (uint32_t*) (stacks[executing]);
       memcpy( child_stack, parent_stack, 0x00001000);
@@ -285,15 +273,10 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       if (x != NULL) { // incase load returns NULL
         ctx->pc = ( uint32_t ) x;
         // update the stackpointer so that it is pointing at the correct stack
-        // is this the correct stack though?
-        // ctx->sp = tos_user + (executing * 0x00001000);
         ctx->sp = stacks[executing];
+        // update the pcb status from ready to executing
+        pcb[executing].status = STATUS_EXECUTING;
       }
-
-      // how do i set this pcb status to executing?
-      // i think its okay because i had set the status of the child to ready
-      // and then the scheduler will choose it next and set the status to executing
-
       break;
     }
 
