@@ -9,9 +9,11 @@
 
 #define MAX_PROCESSES 20
 #define MAX_PIPES 20
+#define PIPE_FILENO   ( 3 )
 
 pcb_t pcb[MAX_PROCESSES]; int executing = 0;
 pipe_t pipe[MAX_PIPES]; int next_pipe = 0;
+pipe_t* pipe_ptr = pipe;
 fd_t fds[20]; int next_fd = 0;
 uint32_t processes = 0;
 bool round_robin_flag = false;
@@ -144,6 +146,11 @@ void hilevel_handler_rst( ctx_t* ctx ) {
     initialise_pcb( i, i+1, (uint32_t) (0), stacks[i], 0 );
   }
 
+  for (int i = 0; i < MAX_PIPES; i++)
+  {
+    memset(&pipe[i], 0, sizeof(pipe_t));
+  }
+
   // initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
   // processes = 1;
 
@@ -189,8 +196,8 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
         for( int i = 0; i < n; i++ ) {
           PL011_putc( UART0, *x++, true );
         }
-      } else if (fd > 2) {
-          int p = fds[fd - 3].pipe_no;
+      } else if (fd >= PIPE_FILENO) {
+          int p = fds[fd - PIPE_FILENO].pipe_no;
           for (int i = 0; i < n; i++) {
             // pipe[p].data[ (pipe[p].writeptr + i) % 100 ] = *x++; // may need to mod this with 100
             data[p][ (pipe[p].writeptr + i) % 100 ] = *x++; // may need to mod this with 100
@@ -328,7 +335,7 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       pipe[next_pipe].readptr = 0;
       pipe[next_pipe].writeptr = 0;
       pipe[next_pipe].blocking = -1;
-      // pipe[next_pipe].amount_blocked = 0; // this or size is casuing error
+      pipe[next_pipe].amount_blocked = 0; // this or size is casuing error
       pipe[next_pipe].size = 0;
 
       // when amount blocked is commented out it works
@@ -338,19 +345,16 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       // bx lr, its now andeq r0, r0, r0
       // but every other call like nice or write are still in tact?
 
-      fds[next_fd].fd      = next_fd + 3;
+      fds[next_fd].fd      = next_fd + PIPE_FILENO;
       fds[next_fd].read    = true;
       fds[next_fd].pipe_no = next_pipe;
-      fd[0] = fds[next_fd].fd;
+      fd[0] = fds[next_fd++].fd;
 
-      next_fd++;
-
-      fds[next_fd].fd      = next_fd + 3;
+      fds[next_fd].fd      = next_fd + PIPE_FILENO;
       fds[next_fd].read    = false;
       fds[next_fd].pipe_no = next_pipe;
-      fd[1] = fds[next_fd].fd;
+      fd[1] = fds[next_fd++].fd;
 
-      next_fd++;
       next_pipe++;
 
       break;

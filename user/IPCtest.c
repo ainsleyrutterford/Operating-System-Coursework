@@ -14,7 +14,7 @@ void main_IPCtest() {
   } else { // child process
     write( STDOUT_FILENO, "Child process\n", 15 );
     char readbuffer[100];
-    read( fd[0], readbuffer, 27 );
+    read( fd[0], &readbuffer, 27 );
     // write( STDOUT_FILENO, "ch\n", 3 );
     write( STDOUT_FILENO, readbuffer, 27 );
   }

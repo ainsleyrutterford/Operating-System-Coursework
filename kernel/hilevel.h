@@ -68,12 +68,12 @@ typedef struct {
 } pcb_t;
 
 typedef struct {
-  // char     data[100];
-  int        readptr;
-  int       writeptr;
-  int       blocking;
-  int amount_blocked;
-  int           size;
+  uint16_t        readptr;
+  uint16_t       writeptr;
+  pid_t          blocking;
+  uint16_t amount_blocked;
+  uint16_t           size;
+  uint8_t       data[100];
 } pipe_t;
 
 typedef struct {

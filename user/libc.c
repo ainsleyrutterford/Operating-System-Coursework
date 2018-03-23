@@ -78,7 +78,15 @@ int write( int fd, const void* x, size_t n ) {
 
 int  read( int fd,       void* x, size_t n ) {
   int r;
+/*
+  while(ImwaitingOnReading){
+  myFunctionCallToCheckSizeOfPipe
+  yield()
+}
+  // if the pipe has enough.
+  Read the stuff below.
 
+*/
   asm volatile( "mov r0, %2 \n" // assign r0 = fd
                 "mov r1, %3 \n" // assign r1 =  x
                 "mov r2, %4 \n" // assign r2 =  n
@@ -155,6 +163,6 @@ void pipe( int* fd ) {
               :
               : "I" (SYS_PIPE), "r" (fd)
               : "r0");
-              
+
   return;
 }
