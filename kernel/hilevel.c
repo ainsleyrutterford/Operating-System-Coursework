@@ -49,7 +49,9 @@ void priority_based_scheduler(ctx_t* ctx) { // priority based scheduler
       max = pcb[i].priority + pcb[i].age;     // update max total priority
       next = i;                               // update next if i is the max
     }
-    pcb[i].age++; // increment age of every process
+    if (pcb[i].status == STATUS_READY) {
+      pcb[i].age++; // increment age of every process
+    }
   }
 
   pcb[next].age = 0; // reset the age of the process to be executed to 0
