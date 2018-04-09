@@ -7,6 +7,9 @@
 
 #include "libc.h"
 
+extern bool can_read();
+extern void update_read_information();
+
 int  atoi( char* x        ) {
   char* p = x; bool s = false; int r = 0;
 
@@ -78,15 +81,12 @@ int write( int fd, const void* x, size_t n ) {
 
 int  read( int fd,       void* x, size_t n ) {
   int r;
-/*
-  while(ImwaitingOnReading){
-  myFunctionCallToCheckSizeOfPipe
-  yield()
-}
-  // if the pipe has enough.
-  Read the stuff below.
 
-*/
+  while( !can_read(fd, n) ) {
+    update_read_information(fd, n);
+    yield();
+  }
+
   asm volatile( "mov r0, %2 \n" // assign r0 = fd
                 "mov r1, %3 \n" // assign r1 =  x
                 "mov r2, %4 \n" // assign r2 =  n

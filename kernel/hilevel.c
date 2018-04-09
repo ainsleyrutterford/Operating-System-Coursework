@@ -135,6 +135,10 @@ void hilevel_handler_rst( ctx_t* ctx ) {
     memset(&pipes[i], 0, sizeof(pipe_t));
   }
 
+  for (int i = 0; i < MAX_FDS; i++) {
+    memset(&fds[i], 0, sizeof(fd_t));
+  }
+
   // initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
   // processes = 1;
 
@@ -166,8 +170,29 @@ void hilevel_handler_irq(ctx_t* ctx) {
   return;
 }
 
+bool can_read(int fd, size_t n) {
+  int p = fds[fd - PIPE_FILENO].pipe_no;
+  if (n > pipes[p].size) {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+void update_read_information(int fd, size_t n) {
+  int p = fds[fd - 3].pipe_no;
+  pcb[executing].status = STATUS_WAITING;
+  pipes[p].blocking = executing;
+  pipes[p].amount_blocked = n - pipes[p].size;
+}
+
 void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
   switch(id) {
+
+    case 0x00 : { // 0x00 => yield()
+      scheduler(ctx);
+      break;
+    }
 
     case 0x01 : { // 0x01 => write( fd, x, n )
       int   fd = ( int   )( ctx->gpr[ 0 ] );
@@ -183,12 +208,15 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       } else if (fd >= PIPE_FILENO) {
           int p = fds[fd - PIPE_FILENO].pipe_no;
           for (int i = 0; i < n; i++) {
-            // pipe[p].data[ (pipe[p].writeptr + i) % 100 ] = *x++; // may need to mod this with 100
             pipes[p].data[ (pipes[p].writeptr + i) % 100 ] = *x++; // may need to mod this with 100
           }
           pipes[p].writeptr = (pipes[p].writeptr + n) % 100; // mod 100?
 
-          pipes[p].size = (pipes[p].size + n) % 100;
+          pipes[p].size = (pipes[p].size + n);
+          if (pipes[p].size > 100) {
+            pipes[p].size = 100; // max size a pipe can be is 100
+          }
+
           if (pipes[p].blocking != -1) { // if this pipe is blocking anything
             pipes[p].amount_blocked -= n;
             if (pipes[p].amount_blocked <= 0) {
@@ -212,23 +240,16 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       char*  x  = ( char* ) (ctx->gpr[ 1 ]);
       int    n  = ( int   ) (ctx->gpr[ 2 ]);
 
-      int p = fds[fd - 3].pipe_no;
-      if (n > pipes[p].size) {
-        pcb[executing].status = STATUS_WAITING;
-        pipes[p].blocking = executing;
-        pipes[p].amount_blocked = n - pipes[p].size;
-        ctx->pc -= 12;
-        memcpy( &pcb[executing].ctx, ctx, sizeof( ctx_t ) );
-        scheduler(ctx);
-      } else {
-        for (int i = 0; i < n; i++) {
-          // *x++ = pipe[p].data[ (pipe[p].readptr + i) % 100 ]; // mod 100?
-          *x++ = pipes[p].data[ (pipes[p].readptr + i) % 100 ]; // mod 100?
-        }
-        pipes[p].readptr = (pipes[p].readptr + n) % 100; // mod 100?
+      int p = fds[fd - PIPE_FILENO].pipe_no;
 
-        pipes[p].size -= n;
+      for (int i = 0; i < n; i++) {
+        // *x++ = pipe[p].data[ (pipe[p].readptr + i) % 100 ]; // mod 100?
+        *x++ = pipes[p].data[ (pipes[p].readptr + i) % 100 ]; // mod 100?
       }
+      pipes[p].readptr = (pipes[p].readptr + n) % 100; // mod 100?
+
+      pipes[p].size -= n;
+
       break;
     }
 

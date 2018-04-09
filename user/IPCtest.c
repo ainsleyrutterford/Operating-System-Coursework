@@ -8,7 +8,7 @@ void main_IPCtest() {
   if (pid == 0) { // Child process
     write( STDOUT_FILENO, "Child process\n", 14 );
     char readbuffer[100];
-    read( fd[0], &readbuffer, 27 );
+    read( fd[0], readbuffer, 27 );
     write( STDOUT_FILENO, readbuffer, 27 );
   } else { // Parent process
     write( STDOUT_FILENO, "Parent process\n", 15 );
