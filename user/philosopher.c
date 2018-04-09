@@ -1,14 +1,9 @@
 #include "philosopher.h"
 
 void philosopher(int i, int readfd, int writefd) {
-  // Writing "Philosopher x" to stdout
-  // write(STDOUT_FILENO, "Philosopher ", 12);
+  // Writing "x said hi to y" to the pipe
   char intbuffer[2];
   itoa(intbuffer, i);
-  // write(STDOUT_FILENO, intbuffer, 2);
-  // write(STDOUT_FILENO, "\n", 1);
-
-  // Writing "x said hi to y" to the pipe
   write(writefd, intbuffer, 2);
   write(writefd, " says hi to ", 12);
 
@@ -66,4 +61,6 @@ int main_philosopher(int argc, char** argsv) {
       exit(EXIT_SUCCESS);
     }
   }
+  write(STDOUT_FILENO, "terminating...\n", 15);
+  exit(EXIT_SUCCESS);
 }

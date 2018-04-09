@@ -229,6 +229,7 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
         }
 
       ctx->gpr[ 0 ] = n;
+
       if (call_scheduler) {
         scheduler(ctx);
       }
