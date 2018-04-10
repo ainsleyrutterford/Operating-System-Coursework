@@ -1,5 +1,5 @@
-#ifndef __IPCtest_H
-#define __IPCtest_H
+#ifndef __PHILOSOPHER_H
+#define __PHILOSOPHER_H
 
 #include <stdbool.h>
 #include <stddef.h>

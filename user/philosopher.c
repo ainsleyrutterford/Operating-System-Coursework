@@ -44,7 +44,7 @@ int get_partner(int i) {
   // 15 -> 23
 }
 
-int main_philosopher(int argc, char** argsv) {
+void main_philosopher(int argc, char** argsv) {
   int fds[32];
   for (int i = 0; i < 16; i++) {
     int fd[2];
