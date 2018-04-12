@@ -143,7 +143,7 @@ void hilevel_handler_rst( ctx_t* ctx ) {
   // initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
   // processes = 1;
 
-  initialise_pcb(0, 1, (uint32_t) (&main_dinner), (uint32_t) (&tos_user), 5);
+  initialise_pcb(0, 1, (uint32_t) (&main_philosopher), (uint32_t) (&tos_user), 5);
   processes = 1;
 
   start_execution(ctx, 0);
@@ -245,10 +245,9 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       int p = fds[fd - PIPE_FILENO].pipe_no;
 
       for (int i = 0; i < n; i++) {
-        // *x++ = pipe[p].data[ (pipe[p].readptr + i) % 100 ]; // mod 100?
-        *x++ = pipes[p].data[ (pipes[p].readptr + i) % 100 ]; // mod 100?
+        *x++ = pipes[p].data[ (pipes[p].readptr + i) % 100 ];
       }
-      pipes[p].readptr = (pipes[p].readptr + n) % 100; // mod 100?
+      pipes[p].readptr = (pipes[p].readptr + n) % 100;
 
       pipes[p].size -= n;
 

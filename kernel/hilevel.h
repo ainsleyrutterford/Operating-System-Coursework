@@ -60,11 +60,11 @@ typedef struct {
 
 // Represents a PCB (Process Control Block)
 typedef struct {
-     pid_t    pid;
-  status_t status;
-     ctx_t    ctx;
-     int priority; // added to implement priority scheduling
-          int age;
+     pid_t      pid;
+  status_t   status;
+     ctx_t      ctx;
+  uint16_t priority; // added to implement priority scheduling
+  uint16_t      age;
 } pcb_t;
 
 typedef struct {
@@ -77,9 +77,9 @@ typedef struct {
 } pipe_t;
 
 typedef struct {
-  int       fd;
+  uint16_t      fd;
+  uint16_t pipe_no;
   bool    read; // is it a read or a write fd
-  int  pipe_no;
 } fd_t;
 
 #endif
