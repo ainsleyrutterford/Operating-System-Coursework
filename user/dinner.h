@@ -12,6 +12,7 @@
 
 typedef struct {
   int id;
+  int owner;
   bool dirty;
 } fork_t;
 
