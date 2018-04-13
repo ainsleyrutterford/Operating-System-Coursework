@@ -39,7 +39,48 @@ void display_philosopher_message(int i) {
   write(STDOUT_FILENO, " spawned.\n", 10);
 }
 
+int calculate_fd(char* fd, int i) {
+  if (0 == strcmp(fd, "lr")) {
+    return i;
+  } else if (0 == strcmp(fd, "lw")) {
+    return (3 * PHILOS) + ((PHILOS - 1 + i) % PHILOS);
+  } else if (0 == strcmp(fd, "rr")) {
+    return PHILOS + i;
+  } else if (0 == strcmp(fd, "rw")) {
+    return (2 * PHILOS) + ((1 + i) % PHILOS);
+  } else {
+    return -1;
+  }
+}
+
 void philo(int id, int left_read_fd, int left_write_fd, int right_read_fd, int right_write_fd) {
+
+  char intbuffer[2];
+
+  // Writing "x said hi to y" to the pipe
+  itoa(intbuffer, id);
+  write(left_write_fd, intbuffer, 2);
+  write(left_write_fd, " says hi to ", 12);
+  // Writing "x said hi to y" to the pipe
+  write(right_write_fd, intbuffer, 2);
+  write(right_write_fd, " says hi to ", 12);
+
+  // Reading the message from another process
+  char buffer[14];
+  read(left_read_fd, buffer, 14);
+
+  // Writing the message out to stdout
+  write(STDOUT_FILENO, buffer, 14);
+  write(STDOUT_FILENO, intbuffer, 2);
+  write(STDOUT_FILENO, "\n", 1);
+
+  read(right_read_fd, buffer, 14);
+
+  // Writing the message out to stdout
+  write(STDOUT_FILENO, buffer, 14);
+  write(STDOUT_FILENO, intbuffer, 2);
+  write(STDOUT_FILENO, "\n", 1);
+
   // while(1) {
     // if (!is_eating(id)) {
     //   if (!has_left_fork(id)) {
@@ -65,7 +106,11 @@ void main_dinner() {
     pid_t pid = fork();
     if (pid == 0) {
       display_philosopher_message(i);
-      philo(i, 0, 0, 0, 0);
+      philo(i,
+            calculate_fd("lr", i),
+            calculate_fd("lw", i),
+            calculate_fd("rr", i),
+            calculate_fd("rw", i));
       exit(EXIT_SUCCESS);
     }
   }
