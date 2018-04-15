@@ -59,9 +59,6 @@ void philo(int id, int left_read_fd, int left_write_fd, int right_read_fd, int r
 
   // Writing "x said hi to y" to the pipe
   itoa(intbuffer, id);
-  write(left_write_fd, intbuffer, 2);
-  write(left_write_fd, " says hi to ", 12);
-  // Writing "x said hi to y" to the pipe
   write(right_write_fd, intbuffer, 2);
   write(right_write_fd, " says hi to ", 12);
 
@@ -74,11 +71,20 @@ void philo(int id, int left_read_fd, int left_write_fd, int right_read_fd, int r
   write(STDOUT_FILENO, intbuffer, 2);
   write(STDOUT_FILENO, "\n", 1);
 
-  read(right_read_fd, buffer, 14);
+  char intbuffer2[2];
+
+  // Writing "x said hi to y" to the pipe
+  itoa(intbuffer2, id);
+  write(left_write_fd, intbuffer2, 2);
+  write(left_write_fd, " says hi to ", 12);
+
+  // Reading the message from another process
+  char buffer2[14];
+  read(right_read_fd, buffer2, 14);
 
   // Writing the message out to stdout
-  write(STDOUT_FILENO, buffer, 14);
-  write(STDOUT_FILENO, intbuffer, 2);
+  write(STDOUT_FILENO, buffer2, 14);
+  write(STDOUT_FILENO, intbuffer2, 2);
   write(STDOUT_FILENO, "\n", 1);
 
   // while(1) {
@@ -102,15 +108,15 @@ void main_dinner() {
   initialise_pipes(fds);
 
   write( STDOUT_FILENO, "Dinner started...\n", 18 );
-  for (int i = 0; i < 16; i++) {
+  for (int i = 0; i < PHILOS; i++) {
+    int lr = fds[calculate_fd("lr", i)];
+    int lw = fds[calculate_fd("lw", i)];
+    int rr = fds[calculate_fd("rr", i)];
+    int rw = fds[calculate_fd("rw", i)];
     pid_t pid = fork();
     if (pid == 0) {
       display_philosopher_message(i);
-      philo(i,
-            calculate_fd("lr", i),
-            calculate_fd("lw", i),
-            calculate_fd("rr", i),
-            calculate_fd("rw", i));
+      philo(i, lr, lw, rr, rw);
       exit(EXIT_SUCCESS);
     }
   }

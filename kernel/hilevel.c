@@ -9,7 +9,7 @@
 
 #define MAX_PROCESSES 40
 #define MAX_PIPES 40
-#define MAX_FDS 40
+#define MAX_FDS 64
 #define PIPE_FILENO 3
 
 pcb_t pcb[MAX_PROCESSES]; int executing = 0;
