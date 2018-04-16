@@ -53,50 +53,170 @@ int calculate_fd(char* fd, int i) {
   }
 }
 
+bool can_eat(int id) {
+  int num_of_forks = 0;
+  for (int i = 0; i < PHILOS; i++) {
+    if (forks[i].owner == id) {
+      num_of_forks++;
+    }
+  }
+  if (num_of_forks == 2) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool has_fork(int id, char* side) {
+  if (0 == strcmp(side, "left")) { // Left
+    if (forks[(id + 1) % PHILOS].owner == id) {
+      return true;
+    } else {
+      return false;
+    }
+  } else { // Right
+    if (forks[id].owner == id) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+}
+
+void give_fork(int id, char* side) {
+  if (0 == strcmp(side, "left")) { // Left
+    forks[(id - 1) % PHILOS].owner = (id - 1) % PHILOS;
+  } else { // Right
+    forks[id].owner == (id + 1) % PHILOS;
+  }
+}
+
+void clean_fork(int id, char* side) {
+  if (0 == strcmp(side, "left")) { // Left
+    forks[id - 1].dirty = false;
+  } else { // Right
+    forks[id].dirty = false;
+  }
+}
+
+bool fork_is_dirty(int id, char* side) {
+  if (0 == strcmp(side, "left")) { // Left
+    return forks[id - 1].dirty;
+  } else { // Right
+    return forks[id].dirty;
+  }
+}
+
+void eat(int id) {
+
+  char buffer[2];
+  itoa(buffer, id);
+  write(STDOUT_FILENO, buffer, 2);
+  write(STDOUT_FILENO, " eating...\n", 11);
+
+  for (int i = 0; i < PHILOS; i++) {
+    if (forks[i].owner == id) {
+      forks[i].dirty = true;
+    }
+  }
+
+}
+
 void philo(int id, int left_read_fd, int left_write_fd, int right_read_fd, int right_write_fd) {
 
-  char intbuffer[2];
+  display_philosopher_message(id);
 
-  // Writing "x said hi to y" to the pipe
-  itoa(intbuffer, id);
-  write(right_write_fd, intbuffer, 2);
-  write(right_write_fd, " says hi to ", 12);
+/*
+  while(1) {
+    char buffer[2];
+    char ibuff[2];
+    itoa(ibuff, id);
 
-  // Reading the message from another process
-  char buffer[14];
-  read(left_read_fd, buffer, 14);
+    if (can_eat(id)) {
+      eat(id);
 
-  // Writing the message out to stdout
-  write(STDOUT_FILENO, buffer, 14);
-  write(STDOUT_FILENO, intbuffer, 2);
-  write(STDOUT_FILENO, "\n", 1);
+      write(STDOUT_FILENO, ibuff, 2);
+      write(STDOUT_FILENO, " waiting for right request.\n", 28);
 
-  char intbuffer2[2];
+      read(right_read_fd, buffer, 2);
+      if (0 == strcmp(buffer, "rq")) {
+        clean_fork(id, "right");
+        give_fork(id, "right");
+        write(right_write_fd, "yy", 2);
+      }
 
-  // Writing "x said hi to y" to the pipe
-  itoa(intbuffer2, id);
-  write(left_write_fd, intbuffer2, 2);
-  write(left_write_fd, " says hi to ", 12);
+      write(STDOUT_FILENO, ibuff, 2);
+      write(STDOUT_FILENO, " waiting for left request.\n", 27);
 
-  // Reading the message from another process
-  char buffer2[14];
-  read(right_read_fd, buffer2, 14);
+      read(left_read_fd, buffer, 2);
+      if (0 == strcmp(buffer, "rq")) {
+        clean_fork(id, "left");
+        give_fork(id, "left");
+        write(left_write_fd, "yy", 2);
+      }
 
-  // Writing the message out to stdout
-  write(STDOUT_FILENO, buffer2, 14);
-  write(STDOUT_FILENO, intbuffer2, 2);
-  write(STDOUT_FILENO, "\n", 1);
+    } else {
 
-  // while(1) {
-    // if (!is_eating(id)) {
-    //   if (!has_left_fork(id)) {
-    //     request_left_fork(id); // write to ask and then read and wait for confirmation
-    //   }
-    //   if (!has_right_fork(id)) {
-    //     request_right_fork(id); // write to ask and then read and wait for confirmation
-    //   }
-    // }
-  // }
+      if (has_fork(id, "left")) {
+
+        read(left_read_fd, buffer, 2);
+        if (0 == strcmp(buffer, "rq")) {
+          clean_fork(id, "left");
+          give_fork(id, "left");
+          write(left_write_fd, "yy", 2);
+        }
+
+      } else {
+
+        write(left_write_fd, "rq", 2);
+        read(left_read_fd, buffer, 2);
+        if (0 == strcmp(buffer, "yy")) {
+          // The fork has been cleaned and given to us
+        }
+
+      }
+
+      if (has_fork(id, "right")) {
+
+        read(right_read_fd, buffer, 2);
+        if (0 == strcmp(buffer, "rq")) {
+          clean_fork(id, "right");
+          give_fork(id, "right");
+          write(right_write_fd, "yy", 2);
+        }
+
+      } else {
+
+        write(STDOUT_FILENO, ibuff, 2);
+        write(STDOUT_FILENO, " requesting right fork.\n", 24);
+
+        write(right_write_fd, "rq", 2);
+        read(right_read_fd, buffer, 2);
+        if (0 == strcmp(buffer, "yy")) {
+          // The fork has been cleaned and given to us
+          write(STDOUT_FILENO, ibuff, 2);
+          write(STDOUT_FILENO, " received right fork.\n", 22);
+        }
+
+      }
+    }
+  }
+*/
+
+  if (has_fork(id, "left")) {
+    char buff[2];
+    itoa(buff, id);
+    write(STDOUT_FILENO, buff, 2);
+    write(STDOUT_FILENO, " has left fork.\n", 16);
+  }
+
+  if (has_fork(id, "right")) {
+    char buff[2];
+    itoa(buff, id);
+    write(STDOUT_FILENO, buff, 2);
+    write(STDOUT_FILENO, " has right fork.\n", 17);
+  }
+
 }
 
 void main_dinner() {
@@ -115,7 +235,6 @@ void main_dinner() {
     int rw = fds[calculate_fd("rw", i)];
     pid_t pid = fork();
     if (pid == 0) {
-      display_philosopher_message(i);
       philo(i, lr, lw, rr, rw);
       exit(EXIT_SUCCESS);
     }
