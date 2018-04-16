@@ -114,33 +114,38 @@ void eat(int id) {
     }
   }
 
+  // for (int i = 0; i < 1000000000; i++) {
+  //   // wait
+  // }
+
 }
 
 void philo(int id, int left_read_fd, int left_write_fd, int right_read_fd, int right_write_fd) {
 
   display_philosopher_message(id);
 
-  /*
   while(1) {
     char buffer[2];
     char ibuff[2];
     itoa(ibuff, id);
 
     if (can_eat(id)) {
-      eat(id);
 
       write(STDOUT_FILENO, ibuff, 2);
-      write(STDOUT_FILENO, " waiting for right request.\n", 28);
+      write(STDOUT_FILENO, " has both forks and can eat.\n", 29);
+
+      eat(id);
 
       read(right_read_fd, buffer, 2);
       if (0 == strcmp(buffer, "rq")) {
+
+        write(STDOUT_FILENO, ibuff, 2);
+        write(STDOUT_FILENO, " cleaning right fork and giving it away.\n", 42);
+
         clean_fork(id, "right");
         give_fork(id, "right");
         write(right_write_fd, "yy", 2);
       }
-
-      write(STDOUT_FILENO, ibuff, 2);
-      write(STDOUT_FILENO, " waiting for left request.\n", 27);
 
       read(left_read_fd, buffer, 2);
       if (0 == strcmp(buffer, "rq")) {
@@ -155,22 +160,36 @@ void philo(int id, int left_read_fd, int left_write_fd, int right_read_fd, int r
 
         read(left_read_fd, buffer, 2);
         if (0 == strcmp(buffer, "rq")) {
-          clean_fork(id, "left");
-          give_fork(id, "left");
-          write(left_write_fd, "yy", 2);
+          if (fork_is_dirty(id, "left")) {
+            give_fork(id, "left");
+            write(left_write_fd, "yy", 2);
+          } else {
+            write(left_write_fd, "nn", 2);
+          }
         }
 
       } else {
-
-        write(STDOUT_FILENO, ibuff, 2);
-        write(STDOUT_FILENO, " requesting left fork.\n", 23);
 
         write(left_write_fd, "rq", 2);
         read(left_read_fd, buffer, 2);
         if (0 == strcmp(buffer, "yy")) {
           // The fork has been cleaned and given to us
-          write(STDOUT_FILENO, ibuff, 2);
-          write(STDOUT_FILENO, " received left fork.\n", 21);
+          if (can_eat(id)) {
+            eat(id);
+            read(right_read_fd, buffer, 2);
+            if (0 == strcmp(buffer, "rq")) {
+              clean_fork(id, "right");
+              give_fork(id, "right");
+              write(right_write_fd, "yy", 2);
+            }
+
+            read(left_read_fd, buffer, 2);
+            if (0 == strcmp(buffer, "rq")) {
+              clean_fork(id, "left");
+              give_fork(id, "left");
+              write(left_write_fd, "yy", 2);
+            }
+          }
         }
 
       }
@@ -179,29 +198,33 @@ void philo(int id, int left_read_fd, int left_write_fd, int right_read_fd, int r
 
         read(right_read_fd, buffer, 2);
         if (0 == strcmp(buffer, "rq")) {
-          clean_fork(id, "right");
-          give_fork(id, "right");
-          write(right_write_fd, "yy", 2);
+          if (fork_is_dirty(id, "right")) {
+            give_fork(id, "right");
+            write(left_write_fd, "yy", 2);
+          } else {
+            write(left_write_fd, "nn", 2);
+          }
         }
 
       } else {
 
-        write(STDOUT_FILENO, ibuff, 2);
-        write(STDOUT_FILENO, " requesting right fork.\n", 24);
+        // write(STDOUT_FILENO, ibuff, 2);
+        // write(STDOUT_FILENO, " requesting right fork.\n", 24);
 
         write(right_write_fd, "rq", 2);
         read(right_read_fd, buffer, 2);
         if (0 == strcmp(buffer, "yy")) {
           // The fork has been cleaned and given to us
-          write(STDOUT_FILENO, ibuff, 2);
-          write(STDOUT_FILENO, " received right fork.\n", 22);
+          // write(STDOUT_FILENO, ibuff, 2);
+          // write(STDOUT_FILENO, " received right fork.\n", 22);
         }
 
       }
+
     }
   }
-  */
 
+  /*
   if (has_fork(id, "left")) {
     char buff[2];
     itoa(buff, id);
@@ -221,12 +244,15 @@ void philo(int id, int left_read_fd, int left_write_fd, int right_read_fd, int r
     itoa(buff, id);
     write(STDOUT_FILENO, buff, 2);
     write(STDOUT_FILENO, " can eat.\n", 10);
+    eat(id);
   }
 
   if (id == 0) {
     give_fork(id, "left");
     give_fork(id, "right");
   }
+  */
+
 }
 
 void main_dinner() {
