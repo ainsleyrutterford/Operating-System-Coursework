@@ -8,8 +8,8 @@
 #include "hilevel.h"
 
 #define MAX_PROCESSES 40
-#define MAX_PIPES 40
-#define MAX_FDS 64
+#define MAX_PIPES 200
+#define MAX_FDS 200
 #define PIPE_FILENO 3
 
 pcb_t pcb[MAX_PROCESSES]; int executing = 0;
@@ -28,9 +28,15 @@ int get_num_of_processes() {
   return processes;
 }
 
-void get_process_pids(int* process_pids, int n) {
-  for (int i = 0; i < processes; i++) {
-    process_pids[i] = pcb[i].pid;
+void get_process_pids(int process_pids[processes]) {
+  int n = 0;
+  for (int i = 0; i < MAX_PROCESSES; i++) {
+    if (pcb[i].status == STATUS_READY ||
+        pcb[i].status == STATUS_EXECUTING ||
+        pcb[i].status == STATUS_WAITING) {
+      process_pids[n] = pcb[i].pid;
+      n++;
+    }
   }
 }
 
@@ -265,29 +271,36 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
     }
 
     case 0x03 : { // 0x03 => fork()
+      uint32_t child = processes;
+      for (int i = 0; i < MAX_PROCESSES; i++) {
+        if (pcb[i].status == STATUS_CREATED || pcb[i].status == STATUS_TERMINATED) {
+            child = i;
+            break;
+          }
+        }
       // copy context of parent to child
-      memcpy( &pcb[processes].ctx, ctx, sizeof( ctx_t ) );
+      memcpy( &pcb[child].ctx, ctx, sizeof( ctx_t ) );
       // set pid of child to next available pid
-      pcb[processes].pid = processes + 1;
+      pcb[child].pid = processes + 1;
       // set r0 of child to 0 which will be the return value of fork
-      pcb[processes].ctx.gpr[0] = 0;
+      pcb[child].ctx.gpr[0] = 0;
       // set r0 of parent to the next available pid which is the pid of the child
-      ctx->gpr[0] = processes + 1;
+      ctx->gpr[0] = child + 1;
 
       // copy the stack of the parent process to the stack of the child process
-      uint32_t* child_stack = (uint32_t*) (stacks[processes]);
+      uint32_t* child_stack = (uint32_t*) (stacks[child]);
       uint32_t* parent_stack = (uint32_t*) (stacks[executing]);
       memcpy( child_stack, parent_stack, 0x00001000);
 
       // set stack pointer of child process to correct stack pointer
-      uint32_t new_sp = ctx->sp - (executing * 0x00001000) + (processes * 0x00001000);
-      pcb[processes].ctx.sp = new_sp;
+      uint32_t new_sp = ctx->sp - (executing * 0x00001000) + (child * 0x00001000);
+      pcb[child].ctx.sp = new_sp;
 
       // set age of child to 1000 so that it executes immediately
-      pcb[processes].age = 1000;
+      pcb[child].age = 1000;
 
       // set the status of the child process to ready
-      pcb[processes].status = STATUS_READY;
+      pcb[child].status = STATUS_READY;
 
       // increment the number of processes
       processes++;
@@ -322,6 +335,7 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       // maybe could have a loop at the beginning of fork that looks thru the
       // pcb table and finds the first pcb that is terminated or created and
       // can create the child there. this would mean that we reuse pcb slots.
+      processes--;
       scheduler(ctx);
       break;
     }
