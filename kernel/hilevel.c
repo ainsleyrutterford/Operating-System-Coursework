@@ -8,8 +8,8 @@
 #include "hilevel.h"
 
 #define MAX_PROCESSES 40
-#define MAX_PIPES 200
-#define MAX_FDS 200
+#define MAX_PIPES 40
+#define MAX_FDS 64
 #define PIPE_FILENO 3
 
 pcb_t pcb[MAX_PROCESSES]; int executing = 0;
@@ -38,6 +38,11 @@ void get_process_pids(int process_pids[processes]) {
       n++;
     }
   }
+}
+
+void close_all_pipes() {
+  next_pipe = 0;
+  next_fd = 0;
 }
 
 void round_robin_scheduler(ctx_t* ctx) { // round robin scheduler
@@ -354,18 +359,20 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
 
       int* fd = ( int* ) (ctx->gpr[ 0 ]);
 
-      // memset( &pipe[next_pipe], 0, sizeof( pipe_t ) );
+      memset( &pipes[next_pipe], 0, sizeof( pipe_t ) );
       pipes[next_pipe].readptr = 0;
       pipes[next_pipe].writeptr = 0;
       pipes[next_pipe].blocking = -1;
       pipes[next_pipe].amount_blocked = 0;
       pipes[next_pipe].size = 0;
 
+      memset( &fds[next_fd], 0, sizeof( fd_t ) );
       fds[next_fd].fd      = next_fd + PIPE_FILENO;
       fds[next_fd].read    = true;
       fds[next_fd].pipe_no = next_pipe;
       fd[0] = fds[next_fd++].fd;
 
+      memset( &fds[next_fd], 0, sizeof( fd_t ) );
       fds[next_fd].fd      = next_fd + PIPE_FILENO;
       fds[next_fd].read    = false;
       fds[next_fd].pipe_no = next_pipe;

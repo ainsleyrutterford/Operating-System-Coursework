@@ -91,6 +91,7 @@ void* load( char* x ) {
 extern bool switch_scheduler();
 extern int get_num_of_processes();
 extern int* get_process_pids();
+extern void close_all_pipes();
 
 void main_console() {
   char* p, x[ 1024 ];
@@ -115,6 +116,18 @@ void main_console() {
         if (pids[i] != 1) {
           kill(pids[i], 0);
         }
+      }
+      close_all_pipes();
+    }
+    else if( 0 == strcmp( p, "ps" ) ) {
+      int num_processes = get_num_of_processes();
+      int pids[num_processes];
+      get_process_pids(pids);
+      char buffer[2];
+      for (int i = 0; i < num_processes; i++) {
+        itoa(buffer, pids[i]);
+        puts( buffer, 2 );
+        puts( "\n", 1 );
       }
     }
     else if( 0 == strcmp( p, "terminate" ) ) {
