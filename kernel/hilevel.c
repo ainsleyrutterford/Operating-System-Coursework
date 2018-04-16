@@ -47,8 +47,12 @@ void close_all_pipes() {
 
 void round_robin_scheduler(ctx_t* ctx) { // round robin scheduler
   int next = (executing + 1) % MAX_PROCESSES;
-  while (pcb[next].status != STATUS_READY) {
-    next = (next + 1) % MAX_PROCESSES;
+  if (processes == 1) {
+    next = executing;
+  } else {
+    while (pcb[next].status != STATUS_READY) {
+      next = (next + 1) % MAX_PROCESSES;
+    }
   }
   if (next != executing) {
     if (pcb[executing].status == STATUS_EXECUTING) {     // If the current process is executing
