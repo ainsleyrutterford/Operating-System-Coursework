@@ -97,21 +97,6 @@ void scheduler(ctx_t* ctx) {
   else priority_based_scheduler(ctx);
 }
 
-// Insertion sort in descending order. NOT USED ATM
-void sort_pcb_by_priority(int n) {
-  pcb_t key;
-  int i;
-  for (int j = 1; j < n; j++) {
-    key = pcb[j];
-    i = j-1;
-    while (i >= 0 && pcb[i].priority < key.priority) {
-      pcb[i+1] = pcb[i];
-      i = i-1;
-    }
-    pcb[i+1] = key;
-  }
-}
-
 void initialise_pcb(int process, int pid, uint32_t program, uint32_t memory, int priority) {
   memset( &pcb[ process ], 0, sizeof( pcb_t ) );
   pcb[ process ].pid      = pid;
@@ -339,11 +324,6 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
     case 0x06 : { // 0x06 => kill( int pid, int x )
       int pid = ( int ) (ctx->gpr[ 0 ]);
       pcb[pid - 1].status = STATUS_TERMINATED;
-      // could decrement the number of processes here but then would need a way
-      // of knowing which pcb is next available for fork?
-      // maybe could have a loop at the beginning of fork that looks thru the
-      // pcb table and finds the first pcb that is terminated or created and
-      // can create the child there. this would mean that we reuse pcb slots.
       processes--;
       scheduler(ctx);
       break;
@@ -353,7 +333,6 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       int pid = ( int ) (ctx->gpr[ 0 ]);
       int   x = ( int ) (ctx->gpr[ 1 ]);
       pcb[pid - 1].priority = x;
-      // scheduler(ctx); // do i actually need to call the scheduler here?
       break;
     }
 
