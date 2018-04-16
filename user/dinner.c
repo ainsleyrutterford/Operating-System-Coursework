@@ -69,7 +69,7 @@ bool can_eat(int id) {
 
 bool has_fork(int id, char* side) {
   if (0 == strcmp(side, "left")) { // Left
-    if (forks[(id + 1) % PHILOS].owner == id) {
+    if (forks[(PHILOS + id - 1) % PHILOS].owner == id) {
       return true;
     } else {
       return false;
