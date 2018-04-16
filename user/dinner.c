@@ -94,9 +94,15 @@ bool fork_is_dirty(int id, char* side) {
 }
 
 bool can_eat(int id) {
+  char ibuff[2];
+  itoa(ibuff, id);
   if (has_fork(id, "left") && has_fork(id, "right")) {
+    write(STDOUT_FILENO, ibuff, 2);
+    write(STDOUT_FILENO, " has both forks and can eat.\n", 29);
     return true;
   } else {
+    write(STDOUT_FILENO, ibuff, 2);
+    write(STDOUT_FILENO, " cannot eat.\n", 13);
     return false;
   }
 }
@@ -114,9 +120,9 @@ void eat(int id) {
     }
   }
 
-  // for (int i = 0; i < 1000000000; i++) {
-  //   // wait
-  // }
+  for (int i = 0; i < 1000000000; i++) {
+
+  }
 
 }
 
@@ -130,9 +136,6 @@ void philo(int id, int left_read_fd, int left_write_fd, int right_read_fd, int r
     itoa(ibuff, id);
 
     if (can_eat(id)) {
-
-      write(STDOUT_FILENO, ibuff, 2);
-      write(STDOUT_FILENO, " has both forks and can eat.\n", 29);
 
       eat(id);
 
@@ -149,6 +152,10 @@ void philo(int id, int left_read_fd, int left_write_fd, int right_read_fd, int r
 
       read(left_read_fd, buffer, 2);
       if (0 == strcmp(buffer, "rq")) {
+
+        write(STDOUT_FILENO, ibuff, 2);
+        write(STDOUT_FILENO, " cleaning left fork and giving it away.\n", 41);
+
         clean_fork(id, "left");
         give_fork(id, "left");
         write(left_write_fd, "yy", 2);
@@ -208,9 +215,6 @@ void philo(int id, int left_read_fd, int left_write_fd, int right_read_fd, int r
 
       } else {
 
-        // write(STDOUT_FILENO, ibuff, 2);
-        // write(STDOUT_FILENO, " requesting right fork.\n", 24);
-
         write(right_write_fd, "rq", 2);
         read(right_read_fd, buffer, 2);
         if (0 == strcmp(buffer, "yy")) {
@@ -223,35 +227,6 @@ void philo(int id, int left_read_fd, int left_write_fd, int right_read_fd, int r
 
     }
   }
-
-  /*
-  if (has_fork(id, "left")) {
-    char buff[2];
-    itoa(buff, id);
-    write(STDOUT_FILENO, buff, 2);
-    write(STDOUT_FILENO, " has left fork.\n", 16);
-  }
-
-  if (has_fork(id, "right")) {
-    char buff[2];
-    itoa(buff, id);
-    write(STDOUT_FILENO, buff, 2);
-    write(STDOUT_FILENO, " has right fork.\n", 17);
-  }
-
-  if (can_eat(id)) {
-    char buff[2];
-    itoa(buff, id);
-    write(STDOUT_FILENO, buff, 2);
-    write(STDOUT_FILENO, " can eat.\n", 10);
-    eat(id);
-  }
-
-  if (id == 0) {
-    give_fork(id, "left");
-    give_fork(id, "right");
-  }
-  */
 
 }
 

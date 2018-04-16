@@ -37,6 +37,7 @@ void gets( char* x, int n ) {
 extern void main_P3();
 extern void main_P4();
 extern void main_P5();
+extern void main_dinner();
 
 void* load( char* x ) {
   if     ( 0 == strcmp( x, "P3" ) ) {
@@ -47,6 +48,9 @@ void* load( char* x ) {
   }
   else if( 0 == strcmp( x, "P5" ) ) {
     return &main_P5;
+  }
+  else if( 0 == strcmp( x, "dinner" ) ) {
+    return &main_dinner;
   }
 
   return NULL;
@@ -85,6 +89,8 @@ void* load( char* x ) {
  */
 
 extern bool switch_scheduler();
+// extern int get_num_of_processes();
+// extern int* get_process_pids();
 
 void main_console() {
   char* p, x[ 1024 ];
@@ -101,6 +107,16 @@ void main_console() {
         nice( pid, atoi( strtok( NULL, " " ) ) );
       }
     }
+    // else if( 0 == strcmp( p, "killall" ) ) {
+    //   int num_processes = get_num_of_processes();
+    //   int pids[num_processes];
+    //   get_process_pids(pids, num_processes);
+    //   for (int i = 0; i < num_processes; i++) {
+    //     if (pids[i] != 1) {
+    //       kill(pids[i], 0);
+    //     }
+    //   }
+    // }
     else if( 0 == strcmp( p, "terminate" ) ) {
       pid_t pid = atoi( strtok( NULL, " " ) );
       int   s   = atoi( strtok( NULL, " " ) );

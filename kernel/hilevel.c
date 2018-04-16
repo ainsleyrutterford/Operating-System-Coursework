@@ -24,6 +24,16 @@ bool switch_scheduler() {
   return round_robin_flag;
 }
 
+int get_num_of_processes() {
+  return processes;
+}
+
+void get_process_pids(int* process_pids, int n) {
+  for (int i = 0; i < processes; i++) {
+    process_pids[i] = pcb[i].pid;
+  }
+}
+
 void round_robin_scheduler(ctx_t* ctx) { // round robin scheduler
   int next = (executing + 1) % MAX_PROCESSES;
   while (pcb[next].status != STATUS_READY) {
@@ -140,11 +150,11 @@ void hilevel_handler_rst( ctx_t* ctx ) {
     memset(&fds[i], 0, sizeof(fd_t));
   }
 
-  // initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
-  // processes = 1;
-
-  initialise_pcb(0, 1, (uint32_t) (&main_dinner), (uint32_t) (&tos_user), 5);
+  initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
   processes = 1;
+
+  // initialise_pcb(0, 1, (uint32_t) (&main_dinner), (uint32_t) (&tos_user), 5);
+  // processes = 1;
 
   start_execution(ctx, 0);
 
