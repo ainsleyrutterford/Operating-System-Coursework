@@ -40,7 +40,7 @@ void get_process_pids(int process_pids[processes]) {
   }
 }
 
-void close_all_pipes() {
+void reset_pipes() {
   next_pipe = 0;
   next_fd = 0;
 }

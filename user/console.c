@@ -91,7 +91,7 @@ void* load( char* x ) {
 extern bool switch_scheduler();
 extern int get_num_of_processes();
 extern int* get_process_pids();
-extern void close_all_pipes();
+extern void reset_pipes();
 
 void main_console() {
   char* p, x[ 1024 ];
@@ -117,7 +117,7 @@ void main_console() {
           kill(pids[i], 0);
         }
       }
-      close_all_pipes();
+      reset_pipes();
     }
     else if( 0 == strcmp( p, "ps" ) ) {
       int num_processes = get_num_of_processes();
