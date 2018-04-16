@@ -53,20 +53,6 @@ int calculate_fd(char* fd, int i) {
   }
 }
 
-bool can_eat(int id) {
-  int num_of_forks = 0;
-  for (int i = 0; i < PHILOS; i++) {
-    if (forks[i].owner == id) {
-      num_of_forks++;
-    }
-  }
-  if (num_of_forks == 2) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
 bool has_fork(int id, char* side) {
   if (0 == strcmp(side, "left")) { // Left
     if (forks[(PHILOS + id - 1) % PHILOS].owner == id) {
@@ -85,15 +71,15 @@ bool has_fork(int id, char* side) {
 
 void give_fork(int id, char* side) {
   if (0 == strcmp(side, "left")) { // Left
-    forks[(id - 1) % PHILOS].owner = (id - 1) % PHILOS;
+    forks[(PHILOS + id - 1) % PHILOS].owner = (PHILOS + id - 1) % PHILOS;
   } else { // Right
-    forks[id].owner == (id + 1) % PHILOS;
+    forks[id].owner = (id + 1) % PHILOS;
   }
 }
 
 void clean_fork(int id, char* side) {
   if (0 == strcmp(side, "left")) { // Left
-    forks[id - 1].dirty = false;
+    forks[(PHILOS + id - 1) % PHILOS].dirty = false;
   } else { // Right
     forks[id].dirty = false;
   }
@@ -101,9 +87,17 @@ void clean_fork(int id, char* side) {
 
 bool fork_is_dirty(int id, char* side) {
   if (0 == strcmp(side, "left")) { // Left
-    return forks[id - 1].dirty;
+    return forks[(PHILOS + id - 1) % PHILOS].dirty;
   } else { // Right
     return forks[id].dirty;
+  }
+}
+
+bool can_eat(int id) {
+  if (has_fork(id, "left") && has_fork(id, "right")) {
+    return true;
+  } else {
+    return false;
   }
 }
 
@@ -126,7 +120,7 @@ void philo(int id, int left_read_fd, int left_write_fd, int right_read_fd, int r
 
   display_philosopher_message(id);
 
-/*
+  /*
   while(1) {
     char buffer[2];
     char ibuff[2];
@@ -168,10 +162,15 @@ void philo(int id, int left_read_fd, int left_write_fd, int right_read_fd, int r
 
       } else {
 
+        write(STDOUT_FILENO, ibuff, 2);
+        write(STDOUT_FILENO, " requesting left fork.\n", 23);
+
         write(left_write_fd, "rq", 2);
         read(left_read_fd, buffer, 2);
         if (0 == strcmp(buffer, "yy")) {
           // The fork has been cleaned and given to us
+          write(STDOUT_FILENO, ibuff, 2);
+          write(STDOUT_FILENO, " received left fork.\n", 21);
         }
 
       }
@@ -201,7 +200,7 @@ void philo(int id, int left_read_fd, int left_write_fd, int right_read_fd, int r
       }
     }
   }
-*/
+  */
 
   if (has_fork(id, "left")) {
     char buff[2];
@@ -217,6 +216,17 @@ void philo(int id, int left_read_fd, int left_write_fd, int right_read_fd, int r
     write(STDOUT_FILENO, " has right fork.\n", 17);
   }
 
+  if (can_eat(id)) {
+    char buff[2];
+    itoa(buff, id);
+    write(STDOUT_FILENO, buff, 2);
+    write(STDOUT_FILENO, " can eat.\n", 10);
+  }
+
+  if (id == 0) {
+    give_fork(id, "left");
+    give_fork(id, "right");
+  }
 }
 
 void main_dinner() {
