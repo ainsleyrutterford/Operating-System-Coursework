@@ -1,6 +1,9 @@
 #include "gui.h"
 
-uint16_t fb[ 600 ][ 800 ];
+uint16_t fb[ HEIGHT ][ WIDTH ];
+uint8_t mouse_buffer[3]; int byte_number = 0;
+uint8_t mx = 0;
+uint8_t my = 0;
 
 void configure_LCD() {
   // Configure the LCD display into 800x600 SVGA @ 36MHz resolution.
@@ -46,6 +49,10 @@ void enable_ps2_interrupts() {
   GICD0->CTLR        = 0x00000001; // enable GIC distributor
 }
 
+uint16_t custom_colour(uint8_t r, uint8_t g, uint8_t b) {
+  return (b << 10) | (g << 5) | r;
+}
+
 void draw_char(int c, int x, int y, int fcolour, int bcolour) {
   int cx, cy;
   unsigned char mask;
@@ -83,11 +90,62 @@ void draw_big_char(int c, int x, int y, int fcolour, int bcolour) {
   }
 }
 
-void draw_rect(int x, int y, int width, int height, int colour) {
+void fill_rect(int x, int y, int width, int height, int colour) {
   for (int ry = 0; ry < height; ry++) {
     for (int rx = 0; rx < width; rx++) {
       fb[y + ry][x = rx] = colour;
     }
+  }
+}
+
+void fill_background(uint16_t colour) {
+  for (int y = 0; y < HEIGHT; y++) {
+    for (int x = 0; x < WIDTH; x++) {
+      fb[y][x] = colour;
+    }
+  }
+}
+
+void draw_gui() {
+  fill_background(BLACK);
+}
+
+void process_mouse_buffer() {
+  uint8_t y_sign = (mouse_buffer[0] >> 5) & 0x01;
+  uint8_t x_sign = (mouse_buffer[0] >> 4) & 0x01;
+  uint8_t m1_pressed = mouse_buffer[0] & 0x01;
+  uint8_t m2_pressed = (mouse_buffer[0] >> 1) & 0x01;
+  uint8_t x_amount = mouse_buffer[1];
+  uint8_t y_amount = mouse_buffer[2];
+  fill_rect(0, 0, 100, 100, BLACK);
+  if (y_sign == 1) {
+    draw_char(0x31, 0, 0, WHITE, -1);
+  } else {
+    draw_char(0x30, 0, 0, WHITE, -1);
+  }
+  if (x_sign == 1) {
+    draw_char(0x31, 16, 0, WHITE, -1);
+  } else {
+    draw_char(0x30, 16, 0, WHITE, -1);
+  }
+  if (m1_pressed == 1) {
+    draw_char(0x31, 32, 0, WHITE, -1);
+  } else {
+    draw_char(0x30, 32, 0, WHITE, -1);
+  }
+  if (m2_pressed == 1) {
+    draw_char(0x31, 48, 0, WHITE, -1);
+  } else {
+    draw_char(0x30, 48, 0, WHITE, -1);
+  }
+}
+
+void add_to_mouse_buffer(uint8_t x) {
+  mouse_buffer[byte_number] = x;
+  byte_number++;
+  if (byte_number > 2) {
+    process_mouse_buffer();
+    byte_number = 0;
   }
 }
 
@@ -97,6 +155,7 @@ void mouse_handler(uint8_t x) {
   PL011_putc( UART0, itox( ( x >> 4 ) & 0xF ), true );
   PL011_putc( UART0, itox( ( x >> 0 ) & 0xF ), true );
   PL011_putc( UART0, '>',                      true );
+  add_to_mouse_buffer(x);
 }
 
 void keyboard_handler(uint8_t x) {
@@ -106,15 +165,12 @@ void keyboard_handler(uint8_t x) {
   PL011_putc( UART0, itox( ( x >> 0 ) & 0xF ), true );
   PL011_putc( UART0, '>',                      true );
   if (x == 0x12) {
-    PL011_putc( UART0, 'B',                      true );
-    PL011_putc( UART0, 'L',                      true );
-    PL011_putc( UART0, 'A',                      true );
-    PL011_putc( UART0, 'C',                      true );
-    PL011_putc( UART0, 'K',                      true );
+    fill_background(BLACK);
     draw_char(0x42, 5, 5, 0x7FFF, -1);
     draw_big_char(0x61, 30, 30, 0x7FFF, -1);
   } else if (x == 0x11) {
-    draw_rect(50, 10, 200, 100, 0x7FFF);
+    fill_background(BLACK);
+    fill_rect(50, 10, 200, 100, 0x7FFF);
   }
 }
 
@@ -123,6 +179,8 @@ void main_gui() {
   configure_LCD();
 
   enable_ps2_interrupts();
+
+  draw_gui();
 
   exit(EXIT_SUCCESS);
 }

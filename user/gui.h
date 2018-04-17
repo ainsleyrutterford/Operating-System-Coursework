@@ -23,4 +23,14 @@
 #include "libc.h"
 #include "font8x8_basic.h"
 
+#define WIDTH  800
+#define HEIGHT 600
+
+#define WHITE 0x7FFF
+#define BLACK 0x0000
+#define RED   0x001F
+#define GREEN 0x03E0
+#define BLUE  0x7C00
+#define GREY  0x3DEF
+
 #endif
