@@ -101,8 +101,7 @@ bool can_eat(int id) {
     write(STDOUT_FILENO, " has both forks and can eat.\n", 29);
     return true;
   } else {
-    write(STDOUT_FILENO, ibuff, 2);
-    write(STDOUT_FILENO, " cannot eat.\n", 13);
+    write(STDOUT_FILENO, "", 0);
     return false;
   }
 }
