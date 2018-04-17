@@ -105,7 +105,7 @@ void keyboard_handler(uint8_t x) {
   PL011_putc( UART0, itox( ( x >> 4 ) & 0xF ), true );
   PL011_putc( UART0, itox( ( x >> 0 ) & 0xF ), true );
   PL011_putc( UART0, '>',                      true );
-  if (x == 0x30) {
+  if (x == 0x12) {
     PL011_putc( UART0, 'B',                      true );
     PL011_putc( UART0, 'L',                      true );
     PL011_putc( UART0, 'A',                      true );
