@@ -38,6 +38,7 @@ extern void main_P3();
 extern void main_P4();
 extern void main_P5();
 extern void main_dinner();
+extern void main_gui();
 
 void* load( char* x ) {
   if     ( 0 == strcmp( x, "P3" ) ) {
@@ -52,6 +53,10 @@ void* load( char* x ) {
   else if( 0 == strcmp( x, "dinner" ) ) {
     return &main_dinner;
   }
+  else if( 0 == strcmp( x, "gui" ) ) {
+    return &main_gui;
+  }
+
 
   return NULL;
 }

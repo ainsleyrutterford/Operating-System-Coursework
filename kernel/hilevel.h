@@ -25,6 +25,9 @@
 #include   "GIC.h"
 #include "PL011.h"
 #include "SP804.h"
+#include "PL050.h"
+#include "PL111.h"
+#include   "SYS.h"
 
 /* The kernel source code is made simpler and more consistent by using
  * some human-readable type definitions:

@@ -165,6 +165,9 @@ void hilevel_handler_rst( ctx_t* ctx ) {
   return;
 }
 
+extern void keyboard_handler();
+extern void mouse_handler();
+
 void hilevel_handler_irq(ctx_t* ctx) {
   // Read  the interrupt identifier so we know the source.
   uint32_t id = GICC0->IAR;
@@ -173,6 +176,12 @@ void hilevel_handler_irq(ctx_t* ctx) {
   if( id == GIC_SOURCE_TIMER0 ) {
     scheduler(ctx);
     TIMER0->Timer1IntClr = 0x01;
+  } else if ( id == GIC_SOURCE_PS20) {
+    uint8_t x = PL050_getc( PS20 );
+    keyboard_handler(x);
+  } else if ( id == GIC_SOURCE_PS21) {
+    uint8_t x = PL050_getc( PS21 );
+    mouse_handler(x);
   }
 
   // Write the interrupt identifier to signal we're done.
