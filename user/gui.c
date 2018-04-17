@@ -83,6 +83,14 @@ void draw_big_char(int c, int x, int y, int fcolour, int bcolour) {
   }
 }
 
+void draw_rect(int x, int y, int width, int height, int colour) {
+  for (int ry = 0; ry < height; ry++) {
+    for (int rx = 0; rx < width; rx++) {
+      fb[y + ry][x = rx] = colour;
+    }
+  }
+}
+
 void mouse_handler(uint8_t x) {
   PL011_putc( UART0, '1',                      true );
   PL011_putc( UART0, '<',                      true );
@@ -106,11 +114,7 @@ void keyboard_handler(uint8_t x) {
     draw_char(0x42, 5, 5, 0x7FFF, -1);
     draw_big_char(0x61, 30, 30, 0x7FFF, -1);
   } else if (x == 0x11) {
-    PL011_putc( UART0, 'W',                      true );
-    PL011_putc( UART0, 'H',                      true );
-    PL011_putc( UART0, 'I',                      true );
-    PL011_putc( UART0, 'T',                      true );
-    PL011_putc( UART0, 'E',                      true );
+    draw_rect(50, 10, 200, 100, 0x7FFF);
   }
 }
 
