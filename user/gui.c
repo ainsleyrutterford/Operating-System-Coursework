@@ -93,7 +93,7 @@ void draw_big_char(int c, int x, int y, int fcolour, int bcolour) {
 void fill_rect(int x, int y, int width, int height, int colour) {
   for (int ry = 0; ry < height; ry++) {
     for (int rx = 0; rx < width; rx++) {
-      fb[y + ry][x = rx] = colour;
+      fb[y + ry][x + rx] = colour;
     }
   }
 }
@@ -118,14 +118,26 @@ void process_mouse_buffer() {
   uint8_t x_amount = mouse_buffer[1];
   uint8_t y_amount = mouse_buffer[2];
   fill_rect(0, 0, 100, 100, BLACK);
-  if (y_sign == 1) {
+  if (y_sign == 0) {
+    if (y_amount > 0) {
+      my = (my - 1) % HEIGHT;
+    }
     draw_char(0x31, 0, 0, WHITE, -1);
   } else {
+    if (y_amount > 0) {
+      my = (my + 1) % HEIGHT;
+    }
     draw_char(0x30, 0, 0, WHITE, -1);
   }
   if (x_sign == 1) {
+    if (x_amount > 0) {
+      mx = (mx - 1) % WIDTH;
+    }
     draw_char(0x31, 16, 0, WHITE, -1);
   } else {
+    if (x_amount > 0) {
+      mx = (mx + 1) % WIDTH;
+    }
     draw_char(0x30, 16, 0, WHITE, -1);
   }
   if (m1_pressed == 1) {
@@ -138,6 +150,7 @@ void process_mouse_buffer() {
   } else {
     draw_char(0x30, 48, 0, WHITE, -1);
   }
+  fill_rect(mx, my, 8, 8, RED);
 }
 
 void add_to_mouse_buffer(uint8_t x) {
