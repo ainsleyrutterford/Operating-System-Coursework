@@ -153,7 +153,7 @@ void hilevel_handler_rst( ctx_t* ctx ) {
   initialise_pcb(0, 1, (uint32_t) (&main_console), (uint32_t) (&tos_user), 10);
   processes = 1;
 
-  // initialise_pcb(0, 1, (uint32_t) (&main_dinner), (uint32_t) (&tos_user), 5);
+  // initialise_pcb(0, 1, (uint32_t) (&main_philosopher), (uint32_t) (&tos_user), 5);
   // processes = 1;
 
   start_execution(ctx, 0);
@@ -275,7 +275,7 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       // copy context of parent to child
       memcpy( &pcb[child].ctx, ctx, sizeof( ctx_t ) );
       // set pid of child to next available pid
-      pcb[child].pid = processes + 1;
+      pcb[child].pid = child + 1;
       // set r0 of child to 0 which will be the return value of fork
       pcb[child].ctx.gpr[0] = 0;
       // set r0 of parent to the next available pid which is the pid of the child
