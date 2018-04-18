@@ -105,68 +105,107 @@ void eat(int id) {
 
 }
 
+void display_can_eat_message(int id) {
+  char buffer[2];
+  itoa(buffer, id);
+  write(STDOUT_FILENO, buffer, 2);
+  write(STDOUT_FILENO, " has both forks and can eat.\n", 29);
+}
+
+void await_request_and_give_away_fork(int id, int readfd, int writefd, char* side) {
+  char buffer[2];
+  char idbuff[2];
+  itoa(idbuff, id);
+
+  read(readfd, buffer, 2);
+
+  write(STDOUT_FILENO, idbuff, 2);
+  if (0 == strcmp(side, "left")) {
+    write(STDOUT_FILENO, " cleaning left fork and giving it away.\n", 41);
+    clean_fork(id, "left");
+    give_fork(id, "left");
+  } else {
+    write(STDOUT_FILENO, " cleaning right fork and giving it away.\n", 41);
+    clean_fork(id, "right");
+    give_fork(id, "right");
+  }
+  write(writefd, "yy", 2);
+
+}
+
+void request_fork(int id, int readfd, int writefd, char* side) {
+  char buffer[2];
+  char idbuff[2];
+  itoa(idbuff, id);
+
+  write(STDOUT_FILENO, idbuff, 2);
+  if (0 == strcmp(side, "left")) {
+    write(STDOUT_FILENO, " requesting left fork.\n", 23);
+  } else {
+    write(STDOUT_FILENO, " requesting right fork.\n", 24);
+  }
+
+  write(writefd, "rq", 2);
+  read(readfd, buffer, 2); // should have check that you read "yy"
+
+  write(STDOUT_FILENO, idbuff, 2);
+  if (0 == strcmp(side, "left")) {
+    write(STDOUT_FILENO, " received left fork.\n", 21);
+  } else {
+    write(STDOUT_FILENO, " received right fork.\n", 22);
+  }
+}
+
+int get_state(int id) {
+  if (has_fork(id, "left") && has_fork(id, "right")) {
+    return 3;
+  } else if (has_fork(id, "left") && !has_fork(id, "right")) {
+    return 2;
+  } else if (!has_fork(id, "left") && has_fork(id, "right")) {
+    return 1;
+  } else if (!has_fork(id, "left") && !has_fork(id, "right")) {
+    return 0;
+  }
+  return -1;
+}
+
 void philo(int id, int left_read_fd, int left_write_fd, int right_read_fd, int right_write_fd) {
+
+  char buffer[2];
+  char idbuff[2];
+  itoa(idbuff, id);
+
+  int state = 0;
 
   display_philosopher_message(id);
 
-  char buffer[2];
-  int state = 0;
-
   while (1) {
 
-    if (has_fork(id, "left") && has_fork(id, "right")) {
-      state = 3;
-    } else if (has_fork(id, "left") && !has_fork(id, "right")) {
-      state = 2;
-    } else if (!has_fork(id, "left") && has_fork(id, "right")) {
-      state = 1;
-    } else if (!has_fork(id, "left") && !has_fork(id, "right")) {
-      state = 0;
-    }
+    state = get_state(id);
 
     switch (state) {
       case 3: {
+        display_can_eat_message(id);
         eat(id);
-
-        read(right_read_fd, buffer, 2);
-        clean_fork(id, "right");
-        give_fork(id, "right");
-        write(right_write_fd, "yy", 2);
-
-        read(left_read_fd, buffer, 2);
-        clean_fork(id, "left");
-        give_fork(id, "left");
-        write(left_write_fd, "yy", 2);
+        await_request_and_give_away_fork(id, right_read_fd, right_write_fd, "right");
+        await_request_and_give_away_fork(id, left_read_fd, left_write_fd, "left");
         break;
       }
       case 2: {
-        read(left_read_fd, buffer, 2);
-        clean_fork(id, "left");
-        give_fork(id, "left");
-        write(left_write_fd, "yy", 2);
-
-        write(right_write_fd, "rq", 2);
-        read(right_read_fd, buffer, 2); // should have check that you read "yy"
+        await_request_and_give_away_fork(id, left_read_fd, left_write_fd, "left");
+        request_fork(id, right_read_fd, right_write_fd, "right");
         break;
       }
       case 1: {
-        write(left_write_fd, "rq", 2);
-        read(left_read_fd, buffer, 2); // should have check that you read "yy"
-
+        request_fork(id, left_read_fd, left_write_fd, "left");
+        display_can_eat_message(id);
         eat(id);
-
-        read(right_read_fd, buffer, 2);
-        clean_fork(id, "right");
-        give_fork(id, "right");
-        write(right_write_fd, "yy", 2);
+        await_request_and_give_away_fork(id, right_read_fd, right_write_fd, "right");
         break;
       }
       case 0: {
-        write(left_write_fd, "rq", 2);
-        read(left_read_fd, buffer, 2); // should have check that you read "yy"
-
-        write(right_write_fd, "rq", 2);
-        read(right_read_fd, buffer, 2); // should have check that you read "yy"
+        request_fork(id, left_read_fd, left_write_fd, "left");
+        request_fork(id, right_read_fd, right_write_fd, "right");
         break;
       }
 
