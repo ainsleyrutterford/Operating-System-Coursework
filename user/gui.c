@@ -131,7 +131,7 @@ void process_mouse_buffer() {
   uint8_t m2_pressed = (mouse_buffer[0] >> 1) & 0x01;
   uint8_t x_amount = mouse_buffer[1];
   uint8_t y_amount = mouse_buffer[2];
-  fill_rect(0, 0, 100, 100, BLACK);
+  fill_background(BLACK);
   if (y_sign == 0) {
     if (y_amount > 0) {
       my = (my - 1) % HEIGHT;
