@@ -53,6 +53,20 @@ uint16_t custom_colour(uint8_t r, uint8_t g, uint8_t b) {
   return (b << 10) | (g << 5) | r;
 }
 
+void draw_cursor(int x, int y) {
+  int cx, cy;
+  unsigned char mask;
+
+  for (cy = 0; cy < 12; cy++) {
+    for (cx = 0; cx < 8; cx++) {
+      mask = 0x01 << cx;
+      if ((cursor[cy] & mask) == mask) {
+        fb[y + cy][x + cx] = WHITE;
+      }
+    }
+  }
+}
+
 void draw_char(int c, int x, int y, int fcolour, int bcolour) {
   int cx, cy;
   unsigned char mask;
@@ -150,7 +164,7 @@ void process_mouse_buffer() {
   } else {
     draw_char(0x30, 48, 0, WHITE, -1);
   }
-  fill_rect(mx, my, 8, 8, RED);
+  draw_cursor(mx, my);
 }
 
 void add_to_mouse_buffer(uint8_t x) {
