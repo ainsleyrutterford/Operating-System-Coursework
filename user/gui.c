@@ -22,14 +22,6 @@ void configure_LCD() {
 }
 
 void enable_ps2_interrupts() {
-  /* Configure the mechanism for interrupt handling by
-   *
-   * - configuring then enabling PS/2 controllers st. an interrupt is
-   *   raised every time a byte is subsequently received,
-   * - configuring GIC st. the selected interrupts are forwarded to the
-   *   processor via the IRQ interrupt signal, then
-   * - enabling IRQ interrupts.
-   */
 
   PS20->CR           = 0x00000010; // enable PS/2    (Rx) interrupt
   PS20->CR          |= 0x00000004; // enable PS/2 (Tx+Rx)
@@ -132,13 +124,13 @@ void process_mouse_buffer() {
   fill_background(BLACK);
   if (x_overflow != 0x01) {
     mx += mouse_buffer[1] - ((mouse_buffer[0] << 4) & 0x100);
-    if (mx < 0) mx = 0;
-    if (mx > WIDTH) mx = WIDTH;
+    if (mx <= 20) mx = 20;
+    if (mx >= WIDTH - 20) mx = WIDTH - 20;
   }
   if (y_overflow != 0x01) {
     my -= mouse_buffer[2] - ((mouse_buffer[0] << 3) & 0x100);
-    if (my < 0) my = 0;
-    if (my > HEIGHT) my = HEIGHT;
+    if (my <= 20) my = 20;
+    if (my >= HEIGHT- 20) my = HEIGHT - 20;
   }
   draw_cursor(mx, my);
 }
