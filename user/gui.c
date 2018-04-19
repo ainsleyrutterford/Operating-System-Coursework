@@ -4,10 +4,11 @@ uint16_t fb[ HEIGHT ][ WIDTH ];
 int mouse_buffer[3]; int byte_number = 0;
 uint16_t mx = 0;
 uint16_t my = 0;
+int dinner_x = WIDTH - 210;
+int dinner_y = HEIGHT - 210;
 
 void configure_LCD() {
   // Configure the LCD display into 800x600 SVGA @ 36MHz resolution.
-
   SYSCONF->CLCD      = 0x2CAC;     // per per Table 4.3 of datasheet
   LCD->LCDTiming0    = 0x1313A4C4; // per per Table 4.3 of datasheet
   LCD->LCDTiming1    = 0x0505F657; // per per Table 4.3 of datasheet
@@ -22,7 +23,6 @@ void configure_LCD() {
 }
 
 void enable_ps2_interrupts() {
-
   PS20->CR           = 0x00000010; // enable PS/2    (Rx) interrupt
   PS20->CR          |= 0x00000004; // enable PS/2 (Tx+Rx)
   PS21->CR           = 0x00000010; // enable PS/2    (Rx) interrupt
@@ -112,8 +112,49 @@ void fill_background(uint16_t colour) {
   }
 }
 
+void draw_dinner_gui() {
+  int rect_x = 0;
+  int rect_y = 0;
+  for (int i = 0; i < 4; i++) {
+    rect_y = dinner_y + (i * 50);
+    for (int j = 0; j < 4; j++) {
+      rect_x = dinner_x + (j * 50);
+      fill_rect(rect_x, rect_y, 40, 40, GREY);
+    }
+  }
+}
+
+void add_eater_dinner_gui(int id) {
+  int rect_x = 0;
+  int rect_y = 0;
+  for (int i = 0; i < 4; i++) {
+    rect_y = dinner_y + (i * 50);
+    for (int j = 0; j < 4; j++) {
+      rect_x = dinner_x + (j * 50);
+      if (((i * 4) + j) == id) {
+        fill_rect(rect_x, rect_y, 40, 40, RED);
+      }
+    }
+  }
+}
+
+void remove_eater_dinner_gui(int id) {
+  int rect_x = 0;
+  int rect_y = 0;
+  for (int i = 0; i < 4; i++) {
+    rect_y = dinner_y + (i * 50);
+    for (int j = 0; j < 4; j++) {
+      rect_x = dinner_x + (j * 50);
+      if (((i * 4) + j) == id) {
+        fill_rect(rect_x, rect_y, 40, 40, GREY);
+      }
+    }
+  }
+}
+
 void draw_gui() {
   fill_background(BLACK);
+  draw_dinner_gui();
 }
 
 void process_mouse_buffer() {
@@ -145,11 +186,6 @@ void add_to_mouse_buffer(uint8_t x) {
 }
 
 void mouse_handler(uint8_t x) {
-  // PL011_putc( UART0, '1',                      true );
-  // PL011_putc( UART0, '<',                      true );
-  // PL011_putc( UART0, itox( ( x >> 4 ) & 0xF ), true );
-  // PL011_putc( UART0, itox( ( x >> 0 ) & 0xF ), true );
-  // PL011_putc( UART0, '>',                      true );
   add_to_mouse_buffer(x);
 }
 

@@ -20,6 +20,7 @@ void distribute_forks() {
       forks[i].owner = (i + 1) % PHILOS;
     }
   }
+  forks[7].owner = 8;
 }
 
 void initialise_pipes(int fds[4 * PHILOS]) {
@@ -93,6 +94,9 @@ bool fork_is_dirty(int id, char* side) {
   }
 }
 
+extern void add_eater_dinner_gui();
+extern void remove_eater_dinner_gui();
+
 void eat(int id) {
 
   char buffer[2];
@@ -102,6 +106,12 @@ void eat(int id) {
 
   forks[(PHILOS + id - 1) % PHILOS].dirty = false; // Dirty left fork
   forks[id].dirty = false; // Dirty right fork
+
+  add_eater_dinner_gui(id);
+
+  for (int i = 0; i < 100000000; i++) {
+    // Delay so that gui can see who is eating
+  }
 
 }
 
@@ -128,6 +138,7 @@ void await_request_and_give_away_fork(int id, int readfd, int writefd, char* sid
     write(STDOUT_FILENO, " cleaning right fork and giving it away.\n", 41);
     clean_fork(id, "right");
     give_fork(id, "right");
+    remove_eater_dinner_gui(id);
   }
   write(writefd, "yy", 2);
 
