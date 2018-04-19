@@ -96,6 +96,8 @@ bool fork_is_dirty(int id, char* side) {
 
 extern void add_eater_dinner_gui();
 extern void remove_eater_dinner_gui();
+extern void add_fork_dinner_gui();
+extern void remove_fork_dinner_gui();
 
 void eat(int id) {
 
@@ -134,11 +136,13 @@ void await_request_and_give_away_fork(int id, int readfd, int writefd, char* sid
     write(STDOUT_FILENO, " cleaning left fork and giving it away.\n", 41);
     clean_fork(id, "left");
     give_fork(id, "left");
+    remove_fork_dinner_gui(id, "left");
   } else {
     write(STDOUT_FILENO, " cleaning right fork and giving it away.\n", 41);
     clean_fork(id, "right");
     give_fork(id, "right");
     remove_eater_dinner_gui(id);
+    remove_fork_dinner_gui(id, "left");
   }
   write(writefd, "yy", 2);
 
@@ -162,8 +166,10 @@ void request_fork(int id, int readfd, int writefd, char* side) {
   write(STDOUT_FILENO, idbuff, 2);
   if (0 == strcmp(side, "left")) {
     write(STDOUT_FILENO, " received left fork.\n", 21);
+    add_fork_dinner_gui(id, "left");
   } else {
     write(STDOUT_FILENO, " received right fork.\n", 22);
+    add_fork_dinner_gui(id, "right");
   }
 }
 

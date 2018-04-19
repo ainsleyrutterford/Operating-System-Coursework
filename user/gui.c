@@ -214,6 +214,58 @@ void remove_eater_dinner_gui(int id) {
   }
 }
 
+void add_fork_dinner_gui(int id, char* side) {
+  int x_fork, y_fork, offset;
+  int spacing = 95;
+  bool true_left = true;
+  for (int i = 0; i < 2; i++) {
+    y_fork = dinner_y + (i * spacing);
+    for (int j = 0; j < 8; j++) {
+      if (i == 1) {
+        offset = (7 - j);
+        true_left = true;
+      } else {
+        offset = j;
+        true_left = false;
+      }
+      if (0 == strcmp(side, "left")) {
+        if (true_left) x_fork = dinner_x + 5              + (offset * spacing);
+        else           x_fork = dinner_x + (spacing - 21) + (offset * spacing);
+      } else {
+        if (true_left) x_fork = dinner_x + (spacing - 21) + (offset * spacing);
+        else           x_fork = dinner_x + 5              + (offset * spacing);
+      }
+      draw_fork(x_fork, y_fork, (i * 8) + j, WHITE);
+    }
+  }
+}
+
+void remove_fork_dinner_gui(int id, char* side) {
+  int x_fork, y_fork, offset;
+  bool true_left = true;
+  int spacing = 95;
+  for (int i = 0; i < 2; i++) {
+    y_fork = dinner_y + (i * spacing);
+    for (int j = 0; j < 8; j++) {
+      if (i == 1) {
+        offset = (7 - j);
+        true_left = false;
+      } else {
+        offset = j;
+        true_left = true;
+      }
+      if (0 == strcmp(side, "left")) {
+        if (true_left) x_fork = dinner_x + 5              + (offset * spacing);
+        else           x_fork = dinner_x + (spacing - 21) + (offset * spacing);
+      } else {
+        if (true_left) x_fork = dinner_x + (spacing - 21) + (offset * spacing);
+        else           x_fork = dinner_x + 5              + (offset * spacing);
+      }
+      draw_fork(x_fork, y_fork, (i * 8) + j, custom_colour(4, 4, 4));
+    }
+  }
+}
+
 void draw_gui() {
   fill_background(BLACK);
   draw_dinner_gui();
