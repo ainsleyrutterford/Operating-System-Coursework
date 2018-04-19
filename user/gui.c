@@ -59,7 +59,7 @@ void draw_cursor(int x, int y) {
   }
 }
 
-void draw_fork(int x, int y, int id) {
+void draw_fork(int x, int y, int id, int colour) {
   int cx, cy;
   unsigned char mask;
 
@@ -68,11 +68,11 @@ void draw_fork(int x, int y, int id) {
       mask = 0x01 << (cx % 8);
       if (id > 7) {
         if ((gui_fork[cy][cx / 8] & mask) == mask) {
-          fb[y + cy][x + cx] = WHITE;
+          fb[y + cy][x + cx] = colour;
         }
       } else {
         if ((gui_fork_inv[cy][cx / 8] & mask) == mask) {
-          fb[y + cy][x + cx] = WHITE;
+          fb[y + cy][x + cx] = colour;
         }
       }
     }
@@ -167,36 +167,40 @@ void draw_dinner_gui() {
       x_centre = dinner_x + 22 + r + (j * spacing);
       x_fork_1 = dinner_x + 5 + (j * spacing);
       x_fork_2 = dinner_x + (spacing - 21) + (j * spacing);
-      fill_circle(x_centre, y_centre, r, GREY);
-      draw_fork(x_fork_1, y_fork_1, (i * 8) + j);
-      draw_fork(x_fork_2, y_fork_2, (i * 8) + j);
+      fill_circle(x_centre, y_centre, r, custom_colour(0, 31, 0));
+      draw_fork(x_fork_1, y_fork_1, (i * 8) + j, custom_colour(4, 4, 4));
+      draw_fork(x_fork_2, y_fork_2, (i * 8) + j, custom_colour(4, 4, 4));
     }
   }
 }
 
 void add_eater_dinner_gui(int id) {
-  int rect_x = 0;
-  int rect_y = 0;
-  for (int i = 0; i < 4; i++) {
-    rect_y = dinner_y + (i * 50);
-    for (int j = 0; j < 4; j++) {
-      rect_x = dinner_x + (j * 50);
-      if (((i * 4) + j) == id) {
-        fill_rect(rect_x, rect_y, 40, 40, RED);
+  int x_centre = 0;
+  int y_centre = 0;
+  int r = 25;
+  int spacing = 95;
+  for (int i = 0; i < 2; i++) {
+    y_centre = dinner_y + r + (i * spacing);
+    for (int j = 0; j < 8; j++) {
+      x_centre = dinner_x + 22 + r + (j * spacing);
+      if (((i * 8) + j) == id) {
+        fill_circle(x_centre, y_centre, r, custom_colour(0, 0, 31));
       }
     }
   }
 }
 
 void remove_eater_dinner_gui(int id) {
-  int rect_x = 0;
-  int rect_y = 0;
-  for (int i = 0; i < 4; i++) {
-    rect_y = dinner_y + (i * 50);
-    for (int j = 0; j < 4; j++) {
-      rect_x = dinner_x + (j * 50);
-      if (((i * 4) + j) == id) {
-        fill_rect(rect_x, rect_y, 40, 40, GREY);
+  int x_centre = 0;
+  int y_centre = 0;
+  int r = 25;
+  int spacing = 95;
+  for (int i = 0; i < 2; i++) {
+    y_centre = dinner_y + r + (i * spacing);
+    for (int j = 0; j < 8; j++) {
+      x_centre = dinner_x + 22 + r + (j * spacing);
+      if (((i * 8) + j) == id) {
+        fill_circle(x_centre, y_centre, r, custom_colour(0, 31, 0));
       }
     }
   }
