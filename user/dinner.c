@@ -142,7 +142,7 @@ void await_request_and_give_away_fork(int id, int readfd, int writefd, char* sid
     clean_fork(id, "right");
     give_fork(id, "right");
     remove_eater_dinner_gui(id);
-    remove_fork_dinner_gui(id, "left");
+    remove_fork_dinner_gui(id, "right");
   }
   write(writefd, "yy", 2);
 
