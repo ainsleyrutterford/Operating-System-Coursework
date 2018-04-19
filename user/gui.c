@@ -158,15 +158,17 @@ void draw_dinner_gui() {
   int y_centre = 0;
   int r = 25;
   int spacing = 95;
-  int y_fork_1, y_fork_2, x_fork_1, x_fork_2;
+  int y_fork_1, y_fork_2, x_fork_1, x_fork_2, offset;
   for (int i = 0; i < 2; i++) {
     y_centre = dinner_y + r + (i * spacing);
     y_fork_1 = dinner_y + (i * spacing);
     y_fork_2 = dinner_y + (i * spacing);
     for (int j = 0; j < 8; j++) {
-      x_centre = dinner_x + 22 + r + (j * spacing);
-      x_fork_1 = dinner_x + 5 + (j * spacing);
-      x_fork_2 = dinner_x + (spacing - 21) + (j * spacing);
+      if (i == 1) offset = (7 - j);
+      else offset = j;
+      x_centre = dinner_x + 22 + r + (offset * spacing);
+      x_fork_1 = dinner_x + 5 + (offset * spacing);
+      x_fork_2 = dinner_x + (spacing - 21) + (offset * spacing);
       fill_circle(x_centre, y_centre, r, custom_colour(0, 31, 0));
       draw_fork(x_fork_1, y_fork_1, (i * 8) + j, custom_colour(4, 4, 4));
       draw_fork(x_fork_2, y_fork_2, (i * 8) + j, custom_colour(4, 4, 4));
@@ -179,10 +181,13 @@ void add_eater_dinner_gui(int id) {
   int y_centre = 0;
   int r = 25;
   int spacing = 95;
+  int offset;
   for (int i = 0; i < 2; i++) {
     y_centre = dinner_y + r + (i * spacing);
     for (int j = 0; j < 8; j++) {
-      x_centre = dinner_x + 22 + r + (j * spacing);
+      if (i == 1) offset = (7 - j);
+      else offset = j;
+      x_centre = dinner_x + 22 + r + (offset * spacing);
       if (((i * 8) + j) == id) {
         fill_circle(x_centre, y_centre, r, custom_colour(0, 0, 31));
       }
@@ -195,10 +200,13 @@ void remove_eater_dinner_gui(int id) {
   int y_centre = 0;
   int r = 25;
   int spacing = 95;
+  int offset;
   for (int i = 0; i < 2; i++) {
     y_centre = dinner_y + r + (i * spacing);
     for (int j = 0; j < 8; j++) {
-      x_centre = dinner_x + 22 + r + (j * spacing);
+      if (i == 1) offset = (7 - j);
+      else offset = j;
+      x_centre = dinner_x + 22 + r + (offset * spacing);
       if (((i * 8) + j) == id) {
         fill_circle(x_centre, y_centre, r, custom_colour(0, 31, 0));
       }
