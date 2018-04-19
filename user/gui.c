@@ -4,8 +4,8 @@ uint16_t fb[ HEIGHT ][ WIDTH ];
 int mouse_buffer[3]; int byte_number = 0;
 uint16_t mx = 0;
 uint16_t my = 0;
-int dinner_x = WIDTH - 210;
-int dinner_y = HEIGHT - 210;
+int dinner_x = 20;
+int dinner_y = 20;
 
 void configure_LCD() {
   // Configure the LCD display into 800x600 SVGA @ 36MHz resolution.
@@ -59,6 +59,26 @@ void draw_cursor(int x, int y) {
   }
 }
 
+void draw_fork(int x, int y, int id) {
+  int cx, cy;
+  unsigned char mask;
+
+  for (cy = 0; cy < 48; cy++) {
+    for (cx = 0; cx < 16; cx++) {
+      mask = 0x01 << (cx % 8);
+      if (id > 7) {
+        if ((gui_fork[cy][cx / 8] & mask) == mask) {
+          fb[y + cy][x + cx] = WHITE;
+        }
+      } else {
+        if ((gui_fork_inv[cy][cx / 8] & mask) == mask) {
+          fb[y + cy][x + cx] = WHITE;
+        }
+      }
+    }
+  }
+}
+
 void draw_char(int c, int x, int y, int fcolour, int bcolour) {
   int cx, cy;
   unsigned char mask;
@@ -104,11 +124,21 @@ void fill_rect(int x, int y, int width, int height, int colour) {
   }
 }
 
-int stroke_circle(int x_centre, int y_centre, int r, int colour) {
+void stroke_circle(int x_centre, int y_centre, int r, int colour) {
   for (int y = 0; y < HEIGHT; y++) {
     for (int x = 0; x < WIDTH; x++) {
       if ((x - x_centre) * (x - x_centre) + (y - y_centre) * (y - y_centre) < (r * r + r) &&
           (x - x_centre) * (x - x_centre) + (y - y_centre) * (y - y_centre) > (r * r - r)) {
+            fb[y][x] = colour;
+          }
+    }
+  }
+}
+
+void fill_circle(int x_centre, int y_centre, int r, int colour) {
+  for (int y = 0; y < HEIGHT; y++) {
+    for (int x = 0; x < WIDTH; x++) {
+      if ((x - x_centre) * (x - x_centre) + (y - y_centre) * (y - y_centre) < (r * r)) {
             fb[y][x] = colour;
           }
     }
@@ -124,16 +154,24 @@ void fill_background(uint16_t colour) {
 }
 
 void draw_dinner_gui() {
-  int rect_x = 0;
-  int rect_y = 0;
-  for (int i = 0; i < 4; i++) {
-    rect_y = dinner_y + (i * 50);
-    for (int j = 0; j < 4; j++) {
-      rect_x = dinner_x + (j * 50);
-      fill_rect(rect_x, rect_y, 40, 40, GREY);
+  int x_centre = 0;
+  int y_centre = 0;
+  int r = 25;
+  int spacing = 95;
+  int y_fork_1, y_fork_2, x_fork_1, x_fork_2;
+  for (int i = 0; i < 2; i++) {
+    y_centre = dinner_y + r + (i * spacing);
+    y_fork_1 = dinner_y + (i * spacing);
+    y_fork_2 = dinner_y + (i * spacing);
+    for (int j = 0; j < 8; j++) {
+      x_centre = dinner_x + 22 + r + (j * spacing);
+      x_fork_1 = dinner_x + 5 + (j * spacing);
+      x_fork_2 = dinner_x + (spacing - 21) + (j * spacing);
+      fill_circle(x_centre, y_centre, r, GREY);
+      draw_fork(x_fork_1, y_fork_1, (i * 8) + j);
+      draw_fork(x_fork_2, y_fork_2, (i * 8) + j);
     }
   }
-  stroke_circle(100, 100, 100, WHITE);
 }
 
 void add_eater_dinner_gui(int id) {
