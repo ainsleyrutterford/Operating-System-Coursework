@@ -1,9 +1,9 @@
 #include "gui.h"
 
 uint16_t fb[ HEIGHT ][ WIDTH ];
-uint8_t mouse_buffer[3]; int byte_number = 0;
-uint8_t mx = 0;
-uint8_t my = 0;
+int mouse_buffer[3]; int byte_number = 0;
+uint16_t mx = 0;
+uint16_t my = 0;
 
 void configure_LCD() {
   // Configure the LCD display into 800x600 SVGA @ 36MHz resolution.
@@ -125,44 +125,20 @@ void draw_gui() {
 }
 
 void process_mouse_buffer() {
-  uint8_t y_sign = (mouse_buffer[0] >> 5) & 0x01;
-  uint8_t x_sign = (mouse_buffer[0] >> 4) & 0x01;
+  uint8_t y_overflow = (mouse_buffer[0] >> 7) & 0x01;
+  uint8_t x_overflow = (mouse_buffer[0] >> 6) & 0x01;
   uint8_t m1_pressed = mouse_buffer[0] & 0x01;
   uint8_t m2_pressed = (mouse_buffer[0] >> 1) & 0x01;
-  uint8_t x_amount = mouse_buffer[1];
-  uint8_t y_amount = mouse_buffer[2];
   fill_background(BLACK);
-  if (y_sign == 0) {
-    if (y_amount > 0) {
-      my = (my - 1) % HEIGHT;
-    }
-    draw_char(0x31, 0, 0, WHITE, -1);
-  } else {
-    if (y_amount > 0) {
-      my = (my + 1) % HEIGHT;
-    }
-    draw_char(0x30, 0, 0, WHITE, -1);
+  if (x_overflow != 0x01) {
+    mx += mouse_buffer[1] - ((mouse_buffer[0] << 4) & 0x100);
+    if (mx < 0) mx = 0;
+    if (mx > WIDTH) mx = WIDTH;
   }
-  if (x_sign == 1) {
-    if (x_amount > 0) {
-      mx = (mx - 1) % WIDTH;
-    }
-    draw_char(0x31, 16, 0, WHITE, -1);
-  } else {
-    if (x_amount > 0) {
-      mx = (mx + 1) % WIDTH;
-    }
-    draw_char(0x30, 16, 0, WHITE, -1);
-  }
-  if (m1_pressed == 1) {
-    draw_char(0x31, 32, 0, WHITE, -1);
-  } else {
-    draw_char(0x30, 32, 0, WHITE, -1);
-  }
-  if (m2_pressed == 1) {
-    draw_char(0x31, 48, 0, WHITE, -1);
-  } else {
-    draw_char(0x30, 48, 0, WHITE, -1);
+  if (y_overflow != 0x01) {
+    my -= mouse_buffer[2] - ((mouse_buffer[0] << 3) & 0x100);
+    if (my < 0) my = 0;
+    if (my > HEIGHT) my = HEIGHT;
   }
   draw_cursor(mx, my);
 }
@@ -177,11 +153,11 @@ void add_to_mouse_buffer(uint8_t x) {
 }
 
 void mouse_handler(uint8_t x) {
-  PL011_putc( UART0, '1',                      true );
-  PL011_putc( UART0, '<',                      true );
-  PL011_putc( UART0, itox( ( x >> 4 ) & 0xF ), true );
-  PL011_putc( UART0, itox( ( x >> 0 ) & 0xF ), true );
-  PL011_putc( UART0, '>',                      true );
+  // PL011_putc( UART0, '1',                      true );
+  // PL011_putc( UART0, '<',                      true );
+  // PL011_putc( UART0, itox( ( x >> 4 ) & 0xF ), true );
+  // PL011_putc( UART0, itox( ( x >> 0 ) & 0xF ), true );
+  // PL011_putc( UART0, '>',                      true );
   add_to_mouse_buffer(x);
 }
 
