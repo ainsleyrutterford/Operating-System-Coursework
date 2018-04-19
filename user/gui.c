@@ -104,6 +104,17 @@ void fill_rect(int x, int y, int width, int height, int colour) {
   }
 }
 
+int stroke_circle(int x_centre, int y_centre, int r, int colour) {
+  for (int y = 0; y < HEIGHT; y++) {
+    for (int x = 0; x < WIDTH; x++) {
+      if ((x - x_centre) * (x - x_centre) + (y - y_centre) * (y - y_centre) < (r * r + r) &&
+          (x - x_centre) * (x - x_centre) + (y - y_centre) * (y - y_centre) > (r * r - r)) {
+            fb[y][x] = colour;
+          }
+    }
+  }
+}
+
 void fill_background(uint16_t colour) {
   for (int y = 0; y < HEIGHT; y++) {
     for (int x = 0; x < WIDTH; x++) {
@@ -122,6 +133,7 @@ void draw_dinner_gui() {
       fill_rect(rect_x, rect_y, 40, 40, GREY);
     }
   }
+  stroke_circle(100, 100, 100, WHITE);
 }
 
 void add_eater_dinner_gui(int id) {
