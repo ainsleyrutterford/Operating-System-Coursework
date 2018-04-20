@@ -38,6 +38,7 @@ extern void main_P3();
 extern void main_P4();
 extern void main_P5();
 extern void main_dinner();
+extern void main_gui();
 
 void* load( char* x ) {
   if     ( 0 == strcmp( x, "P3" ) ) {
@@ -52,6 +53,10 @@ void* load( char* x ) {
   else if( 0 == strcmp( x, "dinner" ) ) {
     return &main_dinner;
   }
+  else if( 0 == strcmp( x, "gui" ) ) {
+    return &main_gui;
+  }
+
 
   return NULL;
 }
@@ -92,6 +97,8 @@ extern bool switch_scheduler();
 extern int get_num_of_processes();
 extern int* get_process_pids();
 extern void reset_pipes();
+extern bool dinner;
+extern bool P5_running;
 
 void main_console() {
   char* p, x[ 1024 ];
@@ -117,6 +124,8 @@ void main_console() {
           kill(pids[i], 0);
         }
       }
+      dinner = false;
+      P5_running = false;
       reset_pipes();
     }
     else if( 0 == strcmp( p, "ps" ) ) {

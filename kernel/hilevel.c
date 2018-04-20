@@ -11,6 +11,9 @@
 #define MAX_PIPES 40
 #define MAX_FDS 64
 #define PIPE_FILENO 3
+#define STACK_SIZE 0x00010000
+
+uint16_t fb[ 600 ][ 800 ];
 
 pcb_t pcb[MAX_PROCESSES]; int executing = 0;
 pipe_t pipes[MAX_PIPES]; int next_pipe = 0;
@@ -127,6 +130,37 @@ void initialise_timer() {
   GICD0->CTLR         = 0x00000001; // enable GIC distributor
 }
 
+void configure_LCD() {
+  // Configure the LCD display into 800x600 SVGA @ 36MHz resolution.
+  SYSCONF->CLCD      = 0x2CAC;     // per per Table 4.3 of datasheet
+  LCD->LCDTiming0    = 0x1313A4C4; // per per Table 4.3 of datasheet
+  LCD->LCDTiming1    = 0x0505F657; // per per Table 4.3 of datasheet
+  LCD->LCDTiming2    = 0x071F1800; // per per Table 4.3 of datasheet
+
+  LCD->LCDUPBASE     = ( uint32_t )( &fb );
+
+  LCD->LCDControl    = 0x00000020; // select TFT   display type
+  LCD->LCDControl   |= 0x00000008; // select 16BPP display mode
+  LCD->LCDControl   |= 0x00000800; // power-on LCD controller
+  LCD->LCDControl   |= 0x00000001; // enable   LCD controller
+}
+
+void enable_ps2_interrupts() {
+  PS20->CR           = 0x00000010; // enable PS/2    (Rx) interrupt
+  PS20->CR          |= 0x00000004; // enable PS/2 (Tx+Rx)
+  PS21->CR           = 0x00000010; // enable PS/2    (Rx) interrupt
+  PS21->CR          |= 0x00000004; // enable PS/2 (Tx+Rx)
+
+  uint8_t ack;
+
+        PL050_putc( PS20, 0xF4 );  // transmit PS/2 enable command
+  ack = PL050_getc( PS20       );  // receive  PS/2 acknowledgement
+        PL050_putc( PS21, 0xF4 );  // transmit PS/2 enable command
+  ack = PL050_getc( PS21       );  // receive  PS/2 acknowledgement
+
+  GICD0->ISENABLER1 |= 0x00300000; // enable PS2          interrupts
+}
+
 extern void     main_console();
 extern void     main_IPCtest();
 extern void     main_philosopher();
@@ -138,7 +172,7 @@ void hilevel_handler_rst( ctx_t* ctx ) {
   stacks[0] = (uint32_t) (&tos_user);
 
   for (int i = 1; i < MAX_PROCESSES; i++) {
-    stacks[i] = stacks[i - 1] + 0x00001000;
+    stacks[i] = stacks[i - 1] + STACK_SIZE;
     initialise_pcb( i, i+1, 0, stacks[i], 0 );
   }
 
@@ -160,19 +194,34 @@ void hilevel_handler_rst( ctx_t* ctx ) {
 
   initialise_timer();
 
+  configure_LCD();
+
+  enable_ps2_interrupts();
+
   int_enable_irq();
 
   return;
 }
 
+extern void keyboard_handler();
+extern void mouse_handler();
+
 void hilevel_handler_irq(ctx_t* ctx) {
   // Read  the interrupt identifier so we know the source.
   uint32_t id = GICC0->IAR;
+
+  // PL011_putc( UART0, '7',                      true );
 
   // Handle the interrupt, then clear (or reset) the source.
   if( id == GIC_SOURCE_TIMER0 ) {
     scheduler(ctx);
     TIMER0->Timer1IntClr = 0x01;
+  } else if ( id == GIC_SOURCE_PS20) {
+    uint8_t x = PL050_getc( PS20 );
+    keyboard_handler(x);
+  } else if ( id == GIC_SOURCE_PS21) {
+    uint8_t x = PL050_getc( PS21 );
+    mouse_handler(x);
   }
 
   // Write the interrupt identifier to signal we're done.
@@ -284,10 +333,10 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       // copy the stack of the parent process to the stack of the child process
       uint32_t* child_stack = (uint32_t*) (stacks[child]);
       uint32_t* parent_stack = (uint32_t*) (stacks[executing]);
-      memcpy( child_stack, parent_stack, 0x00001000);
+      memcpy( child_stack, parent_stack, STACK_SIZE);
 
       // set stack pointer of child process to correct stack pointer
-      uint32_t new_sp = ctx->sp - (executing * 0x00001000) + (child * 0x00001000);
+      uint32_t new_sp = ctx->sp - (executing * STACK_SIZE) + (child * STACK_SIZE);
       pcb[child].ctx.sp = new_sp;
 
       // set age of child to 1000 so that it executes immediately

@@ -20,6 +20,7 @@ void distribute_forks() {
       forks[i].owner = (i + 1) % PHILOS;
     }
   }
+  forks[7].owner = 8;
 }
 
 void initialise_pipes(int fds[4 * PHILOS]) {
@@ -93,18 +94,10 @@ bool fork_is_dirty(int id, char* side) {
   }
 }
 
-bool can_eat(int id) {
-  char ibuff[2];
-  itoa(ibuff, id);
-  if (has_fork(id, "left") && has_fork(id, "right")) {
-    write(STDOUT_FILENO, ibuff, 2);
-    write(STDOUT_FILENO, " has both forks and can eat.\n", 29);
-    return true;
-  } else {
-    write(STDOUT_FILENO, "", 0);
-    return false;
-  }
-}
+extern void add_eater_dinner_gui();
+extern void remove_eater_dinner_gui();
+extern void add_fork_dinner_gui();
+extern void remove_fork_dinner_gui();
 
 void eat(int id) {
 
@@ -113,144 +106,139 @@ void eat(int id) {
   write(STDOUT_FILENO, buffer, 2);
   write(STDOUT_FILENO, " eating...\n", 11);
 
-  for (int i = 0; i < PHILOS; i++) {
-    if (forks[i].owner == id) {
-      forks[i].dirty = true;
-    }
+  forks[(PHILOS + id - 1) % PHILOS].dirty = false; // Dirty left fork
+  forks[id].dirty = false; // Dirty right fork
+
+  add_eater_dinner_gui(id);
+
+  for (int i = 0; i < 100000000; i++) {
+    // Delay so that gui can see who is eating
   }
 
 }
 
-void listen_for_request_after_eating(int id, int read_fd, int write_fd, char* side) {
+void display_can_eat_message(int id) {
   char buffer[2];
-  char ibuff[2];
-  itoa(ibuff, id);
-
-  read(read_fd, buffer, 2);
-  if (0 == strcmp(buffer, "rq")) {
-    if (0 == strcmp(side, "right")) {
-        write(STDOUT_FILENO, ibuff, 2);
-        write(STDOUT_FILENO, " cleaning right fork and giving it away.\n", 42);
-
-        clean_fork(id, "right");
-        give_fork(id, "right");
-    } else {
-        write(STDOUT_FILENO, ibuff, 2);
-        write(STDOUT_FILENO, " cleaning left fork and giving it away.\n", 41);
-
-        clean_fork(id, "left");
-        give_fork(id, "left");
-    }
-  }
-  write(write_fd, "yy", 2);
-
+  itoa(buffer, id);
+  write(STDOUT_FILENO, buffer, 2);
+  write(STDOUT_FILENO, " has both forks and can eat.\n", 29);
 }
 
-void listen_for_request_with_one_fork(int id, int read_fd, int write_fd, char* side) {
+void await_request_and_give_away_fork(int id, int readfd, int writefd, char* side) {
   char buffer[2];
-  char ibuff[2];
-  itoa(ibuff, id);
+  char idbuff[2];
+  itoa(idbuff, id);
 
-  read(read_fd, buffer, 2);
-  if (0 == strcmp(buffer, "rq")) {
-    if (0 == strcmp(side, "left")) {
-      if (fork_is_dirty(id, "left")) {
-        write(STDOUT_FILENO, ibuff, 2);
-        write(STDOUT_FILENO, " giving dirty left fork away.\n", 30);
+  read(readfd, buffer, 2);
 
-        give_fork(id, "left");
-        write(write_fd, "yy", 2);
-      } else {
-        write(STDOUT_FILENO, ibuff, 2);
-        write(STDOUT_FILENO, " keeping clean left fork.\n", 26);
-
-        write(write_fd, "nn", 2);
-      }
-    } else {
-      if (fork_is_dirty(id, "right")) {
-        write(STDOUT_FILENO, ibuff, 2);
-        write(STDOUT_FILENO, " giving dirty right fork away.\n", 31);
-
-        give_fork(id, "right");
-        write(write_fd, "yy", 2);
-      } else {
-        write(STDOUT_FILENO, ibuff, 2);
-        write(STDOUT_FILENO, " keeping clean right fork.\n", 27);
-
-        write(write_fd, "nn", 2);
-      }
-    }
-  }
-
-}
-
-void request_fork_and_eat_if_possible(int id, int left_read_fd, int left_write_fd, int right_read_fd, int right_write_fd, char* side) {
-  char buffer[2];
-  char ibuff[2];
-  itoa(ibuff, id);
-
+  write(STDOUT_FILENO, idbuff, 2);
   if (0 == strcmp(side, "left")) {
-    write(STDOUT_FILENO, ibuff, 2);
-    write(STDOUT_FILENO, " requesting left fork.\n", 23);
-
-    write(left_write_fd, "rq", 2);
-    read(left_read_fd, buffer, 2);
-    if (0 == strcmp(buffer, "yy")) {
-      // The fork has been cleaned and given to us
-      write(STDOUT_FILENO, ibuff, 2);
-      write(STDOUT_FILENO, " obtained left fork.\n", 21);
-    }
+    write(STDOUT_FILENO, " cleaning left fork and giving it away.\n", 41);
+    clean_fork(id, "left");
+    give_fork(id, "left");
+    if (id == 0) remove_fork_dinner_gui(id, "left");
   } else {
-    write(STDOUT_FILENO, ibuff, 2);
-    write(STDOUT_FILENO, " requesting right fork.\n", 24);
+    write(STDOUT_FILENO, " cleaning right fork and giving it away.\n", 41);
+    clean_fork(id, "right");
+    give_fork(id, "right");
+    remove_eater_dinner_gui(id);
+    if (id == 15) remove_fork_dinner_gui(id, "right");
+  }
+  write(writefd, "yy", 2);
 
-    write(right_write_fd, "rq", 2);
-    read(right_read_fd, buffer, 2);
-    if (0 == strcmp(buffer, "yy")) {
-      // The fork has been cleaned and given to us
-      write(STDOUT_FILENO, ibuff, 2);
-      write(STDOUT_FILENO, " obtained right fork.\n", 22);
-    }
+}
+
+void request_fork(int id, int readfd, int writefd, char* side) {
+  char buffer[2];
+  char idbuff[2];
+  itoa(idbuff, id);
+
+  write(STDOUT_FILENO, idbuff, 2);
+  if (0 == strcmp(side, "left")) {
+    write(STDOUT_FILENO, " requesting left fork.\n", 23);
+  } else {
+    write(STDOUT_FILENO, " requesting right fork.\n", 24);
   }
-  if (0 == strcmp(buffer, "yy")) {
-    if (can_eat(id)) {
-      eat(id);
-      listen_for_request_after_eating(id, right_read_fd, right_write_fd, "right");
-      listen_for_request_after_eating(id, left_read_fd, left_write_fd, "left");
-    }
+
+  write(writefd, "rq", 2);
+  read(readfd, buffer, 2); // should have check that you read "yy"
+
+  write(STDOUT_FILENO, idbuff, 2);
+  if (0 == strcmp(side, "left")) {
+    write(STDOUT_FILENO, " received left fork.\n", 21);
+    add_fork_dinner_gui(id, "left");
+    remove_fork_dinner_gui(id - 1, "right");
+  } else {
+    write(STDOUT_FILENO, " received right fork.\n", 22);
+    add_fork_dinner_gui(id, "right");
+    remove_fork_dinner_gui(id + 1, "left");
   }
+}
+
+int get_state(int id) {
+  if (has_fork(id, "left") && has_fork(id, "right")) {
+    return 3;
+  } else if (has_fork(id, "left") && !has_fork(id, "right")) {
+    return 2;
+  } else if (!has_fork(id, "left") && has_fork(id, "right")) {
+    return 1;
+  } else if (!has_fork(id, "left") && !has_fork(id, "right")) {
+    return 0;
+  }
+  return -1;
 }
 
 void philo(int id, int left_read_fd, int left_write_fd, int right_read_fd, int right_write_fd) {
 
+  char buffer[2];
+  char idbuff[2];
+  itoa(idbuff, id);
+
+  int state = 0;
+
   display_philosopher_message(id);
 
-  while(1) {
-    char buffer[2];
-    char ibuff[2];
-    itoa(ibuff, id);
+  while (1) {
 
-    if (can_eat(id)) {
-      eat(id);
-      listen_for_request_after_eating(id, right_read_fd, right_write_fd, "right");
-      listen_for_request_after_eating(id, left_read_fd, left_write_fd, "left");
-    } else {
+    state = get_state(id);
 
-      if (has_fork(id, "left")) {
-        listen_for_request_with_one_fork(id, left_read_fd, left_write_fd, "left");
-      } else {
-        request_fork_and_eat_if_possible(id, left_read_fd, left_write_fd, right_read_fd, right_write_fd, "left");
+    switch (state) {
+      case 3: {
+        display_can_eat_message(id);
+        eat(id);
+        await_request_and_give_away_fork(id, right_read_fd, right_write_fd, "right");
+        await_request_and_give_away_fork(id, left_read_fd, left_write_fd, "left");
+        break;
       }
-
-      if (has_fork(id, "right")) {
-        listen_for_request_with_one_fork(id, right_read_fd, right_write_fd, "right");
-      } else {
-        request_fork_and_eat_if_possible(id, left_read_fd, left_write_fd, right_read_fd, right_write_fd, "right");
+      case 2: {
+        await_request_and_give_away_fork(id, left_read_fd, left_write_fd, "left");
+        request_fork(id, right_read_fd, right_write_fd, "right");
+        break;
+      }
+      case 1: {
+        request_fork(id, left_read_fd, left_write_fd, "left");
+        display_can_eat_message(id);
+        eat(id);
+        await_request_and_give_away_fork(id, right_read_fd, right_write_fd, "right");
+        break;
+      }
+      case 0: {
+        request_fork(id, left_read_fd, left_write_fd, "left");
+        request_fork(id, right_read_fd, right_write_fd, "right");
+        break;
       }
 
     }
+
   }
 
+}
+
+void draw_correct_gui() {
+  for (int i = 0; i < PHILOS; i++) {
+    if (has_fork(i, "left")) add_fork_dinner_gui(i, "left");
+    else add_fork_dinner_gui(i, "right");
+  }
 }
 
 void main_dinner() {
@@ -260,6 +248,8 @@ void main_dinner() {
   distribute_forks();
 
   initialise_pipes(fds);
+
+  draw_correct_gui();
 
   write( STDOUT_FILENO, "Dinner started...\n", 18 );
   for (int i = 0; i < PHILOS; i++) {

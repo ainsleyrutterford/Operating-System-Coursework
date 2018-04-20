@@ -23,6 +23,6 @@ SECTIONS {
   .       = . + 0x00010000;
   tos_svc = .;
   /* allocate stack for user (equivalent to 20 program stacks) */
-  .       = . + 0x00014000;
+  .       = . + 0x00280000;
   tos_user  = .;
 }
