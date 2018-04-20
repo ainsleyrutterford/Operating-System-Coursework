@@ -279,13 +279,149 @@ void remove_fork_dinner_gui(int id, char* side) {
   }
 }
 
+int ctoi(char c) {
+  switch (c) {
+    case '0':
+      return 0x30;
+    case '1':
+      return 0x31;
+    case '2':
+      return 0x32;
+    case '3':
+      return 0x33;
+    case '4':
+      return 0x34;
+    case '5':
+      return 0x35;
+    case '6':
+      return 0x36;
+    case '7':
+      return 0x37;
+    case '8':
+      return 0x38;
+    case '9':
+      return 0x39;
+    case 'A':
+      return 0x41;
+    case 'B':
+      return 0x42;
+    case 'C':
+      return 0x43;
+    case 'D':
+      return 0x44;
+    case 'E':
+      return 0x45;
+    case 'F':
+      return 0x46;
+    case 'G':
+      return 0x47;
+    case 'H':
+      return 0x48;
+    case 'I':
+      return 0x49;
+    case 'J':
+      return 0x4A;
+    case 'K':
+      return 0x4B;
+    case 'L':
+      return 0x4C;
+    case 'M':
+      return 0x4D;
+    case 'N':
+      return 0x4E;
+    case 'O':
+      return 0x4F;
+    case 'P':
+      return 0x50;
+    case 'Q':
+      return 0x51;
+    case 'R':
+      return 0x52;
+    case 'S':
+      return 0x53;
+    case 'T':
+      return 0x54;
+    case 'U':
+      return 0x55;
+    case 'V':
+      return 0x56;
+    case 'W':
+      return 0x57;
+    case 'X':
+      return 0x58;
+    case 'Y':
+      return 0x59;
+    case 'Z':
+      return 0x5A;
+    case 'a':
+      return 0x61;
+    case 'b':
+      return 0x62;
+    case 'c':
+      return 0x63;
+    case 'd':
+      return 0x64;
+    case 'e':
+      return 0x65;
+    case 'f':
+      return 0x66;
+    case 'g':
+      return 0x67;
+    case 'h':
+      return 0x68;
+    case 'i':
+      return 0x69;
+    case 'j':
+      return 0x6A;
+    case 'k':
+      return 0x6B;
+    case 'l':
+      return 0x6C;
+    case 'm':
+      return 0x6D;
+    case 'n':
+      return 0x6E;
+    case 'o':
+      return 0x6F;
+    case 'p':
+      return 0x70;
+    case 'q':
+      return 0x71;
+    case 'r':
+      return 0x72;
+    case 's':
+      return 0x73;
+    case 't':
+      return 0x74;
+    case 'u':
+      return 0x75;
+    case 'v':
+      return 0x76;
+    case 'w':
+      return 0x77;
+    case 'x':
+      return 0x78;
+    case 'y':
+      return 0x79;
+    case 'z':
+      return 0x7A;
+  }
+}
+
+void draw_string(int x, int y, char* label, int length, int font_size, uint16_t colour){
+  for (int i = 0; i < length; i++) {
+    if (font_size == 1) draw_big_char(ctoi(label[i]), x + ((18) * i), y, colour, -1);
+    else draw_char(ctoi(label[i]), x + ((8) * i), y, colour, -1);
+  }
+}
+
 void draw_buttons() {
   int x = 20;
   int y = 20;
   for (int i = 0; i < BUTTONS; i++) {
     if (buttons[i].visible) {
       fill_rect(buttons[i].x, buttons[i].y, buttons[i].width, buttons[i].height, buttons[i].colour);
-      // draw_string(buttons[i].lable, buttons[i].lable_size, buttons[i].lable_colour);
+      draw_string(buttons[i].x, buttons[i].y, buttons[i].label, buttons[i].label_length, buttons[i].label_size, buttons[i].label_colour);
     }
   }
 }
@@ -331,9 +467,9 @@ void create_buttons() {
     buttons[i].y = 100;
     buttons[i].width = 140;
     buttons[i].height = 80;
-    buttons[i].colour = custom_colour(20,20,31);
-    buttons[i].lable_size = 1;
-    buttons[i].lable_colour = WHITE;
+    buttons[i].colour = custom_colour(20,31,20);
+    buttons[i].label_size = 1;
+    buttons[i].label_colour = WHITE;
     buttons[i].visible = true;
   }
 
@@ -343,19 +479,38 @@ void create_buttons() {
     buttons[i].width = 140;
     buttons[i].height = 40;
     buttons[i].colour = custom_colour(31,25,25);
-    buttons[i].lable_size = 0;
-    buttons[i].lable_colour = WHITE;
+    buttons[i].label_size = 0;
+    buttons[i].label_colour = WHITE;
     buttons[i].visible = true;
   }
 
-  buttons[8].x = 230;
-  buttons[8].y = 190;
+  buttons[8].x = 100;
+  buttons[8].y = 420;
   buttons[8].width = 140;
   buttons[8].height = 80;
   buttons[8].colour = custom_colour(20,20,31);
-  buttons[8].lable_size = 1;
-  buttons[8].lable_colour = WHITE;
+  buttons[8].label_size = 1;
+  buttons[8].label_colour = WHITE;
   buttons[8].visible = true;
+
+  buttons[0].label = "P3";
+  buttons[0].label_length = 2;
+  buttons[1].label = "P4";
+  buttons[1].label_length = 2;
+  buttons[2].label = "P5";
+  buttons[2].label_length = 2;
+  buttons[3].label = "Dinner";
+  buttons[3].label_length = 6;
+  buttons[4].label = "terminate";
+  buttons[4].label_length = 9;
+  buttons[5].label = "terminate";
+  buttons[5].label_length = 9;
+  buttons[6].label = "terminate";
+  buttons[6].label_length = 9;
+  buttons[7].label = "terminate";
+  buttons[7].label_length = 9;
+  buttons[8].label = "killall";
+  buttons[8].label_length = 7;
 
 }
 

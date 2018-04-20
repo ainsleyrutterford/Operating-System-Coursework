@@ -38,9 +38,10 @@ typedef struct {
   int x, y;
   int width, height;
   uint16_t colour;
-  char* lable;
-  int lable_size;
-  uint16_t lable_colour;
+  char* label;
+  int label_length;
+  int label_size;
+  uint16_t label_colour;
   bool visible;
 } button_t;
 
