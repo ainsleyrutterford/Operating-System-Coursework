@@ -66,7 +66,7 @@ void draw_fork(int x, int y, int id, int colour) {
   for (cy = 0; cy < 48; cy++) {
     for (cx = 0; cx < 16; cx++) {
       mask = 0x01 << (cx % 8);
-      if (id > 7) {
+      if (id < 8) {
         if ((gui_fork[cy][cx / 8] & mask) == mask) {
           fb[y + cy][x + cx] = colour;
         }
@@ -160,9 +160,9 @@ void draw_dinner_gui() {
   int spacing = 95;
   int y_fork_1, y_fork_2, x_fork_1, x_fork_2, offset;
   for (int i = 0; i < 2; i++) {
-    y_centre = dinner_y + r + (i * spacing);
-    y_fork_1 = dinner_y + (i * spacing);
-    y_fork_2 = dinner_y + (i * spacing);
+    y_centre = dinner_y + r + ((1 - i) * spacing);
+    y_fork_1 = dinner_y + ((1 - i) * spacing);
+    y_fork_2 = dinner_y + ((1 - i) * spacing);
     for (int j = 0; j < 8; j++) {
       if (i == 1) offset = (7 - j);
       else offset = j;
@@ -170,8 +170,8 @@ void draw_dinner_gui() {
       x_fork_1 = dinner_x + 5 + (offset * spacing);
       x_fork_2 = dinner_x + (spacing - 21) + (offset * spacing);
       fill_circle(x_centre, y_centre, r, custom_colour(0, 31, 0));
-      draw_fork(x_fork_1, y_fork_1, (i * 8) + j, custom_colour(4, 4, 4));
-      draw_fork(x_fork_2, y_fork_2, (i * 8) + j, custom_colour(4, 4, 4));
+      draw_fork(x_fork_1, y_fork_1, (i * 8) + j, custom_colour(1, 1, 1));
+      draw_fork(x_fork_2, y_fork_2, (i * 8) + j, custom_colour(1, 1, 1));
     }
   }
 }
@@ -183,7 +183,7 @@ void add_eater_dinner_gui(int id) {
   int spacing = 95;
   int offset;
   for (int i = 0; i < 2; i++) {
-    y_centre = dinner_y + r + (i * spacing);
+    y_centre = dinner_y + r + ((1 - i) * spacing);
     for (int j = 0; j < 8; j++) {
       if (i == 1) offset = (7 - j);
       else offset = j;
@@ -202,7 +202,7 @@ void remove_eater_dinner_gui(int id) {
   int spacing = 95;
   int offset;
   for (int i = 0; i < 2; i++) {
-    y_centre = dinner_y + r + (i * spacing);
+    y_centre = dinner_y + r + ((1 - i) * spacing);
     for (int j = 0; j < 8; j++) {
       if (i == 1) offset = (7 - j);
       else offset = j;
@@ -219,22 +219,28 @@ void add_fork_dinner_gui(int id, char* side) {
   int spacing = 95;
   bool true_left = true;
   for (int i = 0; i < 2; i++) {
-    y_fork = dinner_y + (i * spacing);
+    y_fork = dinner_y + ((1 - i) * spacing);
     for (int j = 0; j < 8; j++) {
       if ((i * 8 + j) == id) {
         if (i == 1) {
           offset = (7 - j);
-          true_left = true;
+          true_left = false;
         } else {
           offset = j;
-          true_left = false;
+          true_left = true;
         }
         if (0 == strcmp(side, "left")) {
-          if (true_left) x_fork = dinner_x + 5              + (offset * spacing);
-          else           x_fork = dinner_x + (spacing - 21) + (offset * spacing);
+          if (true_left) {
+            x_fork = dinner_x + 5              + (offset * spacing);
+          } else {
+            x_fork = dinner_x + (spacing - 21) + (offset * spacing);
+          }
         } else {
-          if (true_left) x_fork = dinner_x + (spacing - 21) + (offset * spacing);
-          else           x_fork = dinner_x + 5              + (offset * spacing);
+          if (true_left) {
+            x_fork = dinner_x + (spacing - 21) + (offset * spacing);
+          } else {
+            x_fork = dinner_x + 5              + (offset * spacing);
+          }
         }
         draw_fork(x_fork, y_fork, (i * 8) + j, WHITE);
       }
@@ -247,15 +253,15 @@ void remove_fork_dinner_gui(int id, char* side) {
   int spacing = 95;
   bool true_left = true;
   for (int i = 0; i < 2; i++) {
-    y_fork = dinner_y + (i * spacing);
+    y_fork = dinner_y + ((1 - i) * spacing);
     for (int j = 0; j < 8; j++) {
       if ((i * 8 + j) == id) {
         if (i == 1) {
           offset = (7 - j);
-          true_left = true;
+          true_left = false;
         } else {
           offset = j;
-          true_left = false;
+          true_left = true;
         }
         if (0 == strcmp(side, "left")) {
           if (true_left) x_fork = dinner_x + 5              + (offset * spacing);
@@ -264,17 +270,51 @@ void remove_fork_dinner_gui(int id, char* side) {
           if (true_left) x_fork = dinner_x + (spacing - 21) + (offset * spacing);
           else           x_fork = dinner_x + 5              + (offset * spacing);
         }
-        draw_fork(x_fork, y_fork, (i * 8) + j, custom_colour(4, 4, 4));
+        draw_fork(x_fork, y_fork, (i * 8) + j, custom_colour(1, 1, 1));
       }
     }
   }
 }
-
+/*
+void draw_buttons() {
+  int x = 20;
+  int y = 20;
+  for (int i = 0; i < BUTTONS; i++) {
+    fill_rect(buttons[i].x, buttons[i].y, buttons[i].width, buttons[i].height, buttons[i].colour);
+    draw_string(buttons[i].lable, buttons[i].lable_size, buttons[i].lable_colour);
+  }
+}
+*/
 void draw_gui() {
   fill_background(BLACK);
+  // draw_buttons();
   draw_dinner_gui();
 }
 
+void button_pressed(int id) {
+  switch (id) {
+    case 0: {
+      break;
+    }
+    case 1: {
+      break;
+    }
+    case 2: {
+      break;
+    }
+  }
+}
+/*
+void check_button_press(int mx, int my) {
+  for (int i = 0; i < BUTTONS; i++) {
+    if ((mx > buttons[i].x) && (mx < (buttons[i].x + buttons[i].width))) {
+      if ((my > buttons[i].y) && (mx < (buttons[i].y + buttons[i].height))) {
+        button_pressed(i);
+      }
+    }
+  }
+}
+*/
 void process_mouse_buffer() {
   uint8_t y_overflow = (mouse_buffer[0] >> 7) & 0x01;
   uint8_t x_overflow = (mouse_buffer[0] >> 6) & 0x01;
@@ -290,6 +330,9 @@ void process_mouse_buffer() {
     my -= mouse_buffer[2] - ((mouse_buffer[0] << 3) & 0x100);
     if (my <= 20) my = 20;
     if (my >= HEIGHT- 20) my = HEIGHT - 20;
+  }
+  if (m1_pressed == 1) {
+    //check_button_press(mx, my);
   }
   draw_cursor(mx, my);
 }

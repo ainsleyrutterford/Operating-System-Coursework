@@ -111,7 +111,7 @@ void eat(int id) {
 
   add_eater_dinner_gui(id);
 
-  for (int i = 0; i < 100000000; i++) {
+  for (int i = 0; i < 1000000000; i++) {
     // Delay so that gui can see who is eating
   }
 
@@ -167,9 +167,11 @@ void request_fork(int id, int readfd, int writefd, char* side) {
   if (0 == strcmp(side, "left")) {
     write(STDOUT_FILENO, " received left fork.\n", 21);
     add_fork_dinner_gui(id, "left");
+    remove_fork_dinner_gui(id - 1, "right");
   } else {
     write(STDOUT_FILENO, " received right fork.\n", 22);
     add_fork_dinner_gui(id, "right");
+    remove_fork_dinner_gui(id + 1, "left");
   }
 }
 
