@@ -34,6 +34,16 @@
 #define BLUE  0x7C00
 #define GREY  0x3DEF
 
+typedef struct {
+  int x, y;
+  int width, height;
+  uint16_t colour;
+  char* lable;
+  int lable_size;
+  uint16_t lable_colour;
+  bool visible;
+} button_t;
+
 char cursor[12] = { 0x01, 0x03, 0x07, 0x0F,
                     0x1F, 0x3F, 0x7F, 0xFF,
                     0x1F, 0x1B, 0x31, 0x30 };

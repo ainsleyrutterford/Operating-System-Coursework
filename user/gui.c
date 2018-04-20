@@ -1,7 +1,10 @@
 #include "gui.h"
 
+#define BUTTONS 9
+
 uint16_t fb[ HEIGHT ][ WIDTH ];
 int mouse_buffer[3]; int byte_number = 0;
+button_t buttons[BUTTONS];
 uint16_t mx = 0;
 uint16_t my = 0;
 int dinner_x = 20;
@@ -275,20 +278,22 @@ void remove_fork_dinner_gui(int id, char* side) {
     }
   }
 }
-/*
+
 void draw_buttons() {
   int x = 20;
   int y = 20;
   for (int i = 0; i < BUTTONS; i++) {
-    fill_rect(buttons[i].x, buttons[i].y, buttons[i].width, buttons[i].height, buttons[i].colour);
-    draw_string(buttons[i].lable, buttons[i].lable_size, buttons[i].lable_colour);
+    if (buttons[i].visible) {
+      fill_rect(buttons[i].x, buttons[i].y, buttons[i].width, buttons[i].height, buttons[i].colour);
+      // draw_string(buttons[i].lable, buttons[i].lable_size, buttons[i].lable_colour);
+    }
   }
 }
-*/
+
 void draw_gui() {
   fill_background(BLACK);
-  // draw_buttons();
-  draw_dinner_gui();
+  draw_buttons();
+  // draw_dinner_gui();
 }
 
 void button_pressed(int id) {
@@ -304,7 +309,7 @@ void button_pressed(int id) {
     }
   }
 }
-/*
+
 void check_button_press(int mx, int my) {
   for (int i = 0; i < BUTTONS; i++) {
     if ((mx > buttons[i].x) && (mx < (buttons[i].x + buttons[i].width))) {
@@ -314,13 +319,52 @@ void check_button_press(int mx, int my) {
     }
   }
 }
-*/
+
+void create_buttons() {
+  for (int i = 0; i < BUTTONS; i++) {
+    memset( &buttons[i], 0, sizeof( button_t ));
+    buttons[i].visible = false;
+  }
+
+  for (int i = 0; i < 4; i++) {
+    buttons[i].x = 100 + (i * 150);
+    buttons[i].y = 100;
+    buttons[i].width = 140;
+    buttons[i].height = 80;
+    buttons[i].colour = custom_colour(20,20,31);
+    buttons[i].lable_size = 1;
+    buttons[i].lable_colour = WHITE;
+    buttons[i].visible = true;
+  }
+
+  for (int i = 4; i < 8; i++) {
+    buttons[i].x = 100 + ((i % 4) * 150);
+    buttons[i].y = 190;
+    buttons[i].width = 140;
+    buttons[i].height = 40;
+    buttons[i].colour = custom_colour(31,25,25);
+    buttons[i].lable_size = 0;
+    buttons[i].lable_colour = WHITE;
+    buttons[i].visible = true;
+  }
+
+  buttons[8].x = 230;
+  buttons[8].y = 190;
+  buttons[8].width = 140;
+  buttons[8].height = 80;
+  buttons[8].colour = custom_colour(20,20,31);
+  buttons[8].lable_size = 1;
+  buttons[8].lable_colour = WHITE;
+  buttons[8].visible = true;
+
+}
+
 void process_mouse_buffer() {
   uint8_t y_overflow = (mouse_buffer[0] >> 7) & 0x01;
   uint8_t x_overflow = (mouse_buffer[0] >> 6) & 0x01;
   uint8_t m1_pressed = mouse_buffer[0] & 0x01;
   uint8_t m2_pressed = (mouse_buffer[0] >> 1) & 0x01;
-  fill_background(BLACK);
+  // fill_background(BLACK);
   if (x_overflow != 0x01) {
     mx += mouse_buffer[1] - ((mouse_buffer[0] << 4) & 0x100);
     if (mx <= 20) mx = 20;
@@ -371,6 +415,8 @@ void main_gui() {
   configure_LCD();
 
   enable_ps2_interrupts();
+
+  create_buttons();
 
   draw_gui();
 
