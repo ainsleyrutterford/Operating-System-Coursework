@@ -9,6 +9,7 @@ uint16_t mx = 0;
 uint16_t my = 0;
 int dinner_x = 20;
 int dinner_y = 20;
+bool P3_running = false;
 
 uint16_t custom_colour(uint8_t r, uint8_t g, uint8_t b) {
   return (b << 10) | (g << 5) | r;
@@ -403,10 +404,27 @@ void draw_gui() {
   // draw_dinner_gui();
 }
 
+extern void main_P3();
+extern void main_P4();
+extern void main_P5();
+extern void main_dinner();
+
 void button_pressed(int id) {
+  PL011_putc( UART0, '1', true );
   switch (id) {
     case 0: {
-      fill_background(RED);
+      if (!P3_running) {
+        PL011_putc( UART0, 'a', true );
+        pid_t pid = fork();
+        if (pid == 0) {
+          PL011_putc( UART0, 'b', true );
+          exec( &main_P5 );
+        } else {
+          nice(pid, 10);
+        }
+        PL011_putc( UART0, 'c', true );
+        P3_running = true;
+      }
       break;
     }
     case 1: {

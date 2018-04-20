@@ -157,10 +157,7 @@ void enable_ps2_interrupts() {
         PL050_putc( PS21, 0xF4 );  // transmit PS/2 enable command
   ack = PL050_getc( PS21       );  // receive  PS/2 acknowledgement
 
-  GICC0->PMR         = 0x000000F0; // unmask all          interrupts
   GICD0->ISENABLER1 |= 0x00300000; // enable PS2          interrupts
-  GICC0->CTLR        = 0x00000001; // enable GIC interface
-  GICD0->CTLR        = 0x00000001; // enable GIC distributor
 }
 
 extern void     main_console();
@@ -211,6 +208,8 @@ extern void mouse_handler();
 void hilevel_handler_irq(ctx_t* ctx) {
   // Read  the interrupt identifier so we know the source.
   uint32_t id = GICC0->IAR;
+
+  PL011_putc( UART0, '7',                      true );
 
   // Handle the interrupt, then clear (or reset) the source.
   if( id == GIC_SOURCE_TIMER0 ) {
