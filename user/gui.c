@@ -375,8 +375,9 @@ int ctoi(char c) {
 }
 
 void draw_string(int x, int y, int button_width, int button_height, char* label, int length, int font_size, uint16_t colour){
-  if (font_size == 1) int char_size = 18;
-  else int char_size = 9;
+  int char_size;
+  if (font_size == 1) char_size = 18;
+  else char_size = 9;
   int x_offset = (button_width - (length * char_size)) / 2;
   int y_offset = (button_height - char_size) / 2;
   for (int i = 0; i < length; i++) {
@@ -391,7 +392,7 @@ void draw_buttons() {
   for (int i = 0; i < BUTTONS; i++) {
     if (buttons[i].visible) {
       fill_rect(buttons[i].x, buttons[i].y, buttons[i].width, buttons[i].height, buttons[i].colour);
-      draw_string(buttons[i].x, buttons[i].y buttons[i].width, buttons[i].height, buttons[i].label, buttons[i].label_length, buttons[i].label_size, buttons[i].label_colour);
+      draw_string(buttons[i].x, buttons[i].y, buttons[i].width, buttons[i].height, buttons[i].label, buttons[i].label_length, buttons[i].label_size, buttons[i].label_colour);
     }
   }
 }
