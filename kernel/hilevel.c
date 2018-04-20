@@ -210,7 +210,7 @@ void hilevel_handler_irq(ctx_t* ctx) {
   // Read  the interrupt identifier so we know the source.
   uint32_t id = GICC0->IAR;
 
-  PL011_putc( UART0, '7',                      true );
+  // PL011_putc( UART0, '7',                      true );
 
   // Handle the interrupt, then clear (or reset) the source.
   if( id == GIC_SOURCE_TIMER0 ) {

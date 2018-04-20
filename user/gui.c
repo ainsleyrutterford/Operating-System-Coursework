@@ -551,18 +551,10 @@ void mouse_handler(uint8_t x) {
 }
 
 void keyboard_handler(uint8_t x) {
-  PL011_putc( UART0, '0',                      true );
-  PL011_putc( UART0, '<',                      true );
-  PL011_putc( UART0, itox( ( x >> 4 ) & 0xF ), true );
-  PL011_putc( UART0, itox( ( x >> 0 ) & 0xF ), true );
-  PL011_putc( UART0, '>',                      true );
-  if (x == 0x12) {
-    fill_background(BLACK);
-    draw_char(0x42, 5, 5, 0x7FFF, -1);
-    draw_big_char(0x61, 30, 30, 0x7FFF, -1);
-  } else if (x == 0x11) {
-    fill_background(BLACK);
-    fill_rect(50, 10, 200, 100, 0x7FFF);
+  if (x == 0x06) {
+    button_pressed(2);
+  } else if (x == 0x20) {
+    button_pressed(3);
   }
 }
 
