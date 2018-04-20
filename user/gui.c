@@ -2,47 +2,13 @@
 
 #define BUTTONS 9
 
-uint16_t fb[ HEIGHT ][ WIDTH ];
+extern uint16_t fb[ HEIGHT ][ WIDTH ];
 int mouse_buffer[3]; int byte_number = 0;
 button_t buttons[BUTTONS];
 uint16_t mx = 0;
 uint16_t my = 0;
 int dinner_x = 20;
 int dinner_y = 20;
-
-void configure_LCD() {
-  // Configure the LCD display into 800x600 SVGA @ 36MHz resolution.
-  SYSCONF->CLCD      = 0x2CAC;     // per per Table 4.3 of datasheet
-  LCD->LCDTiming0    = 0x1313A4C4; // per per Table 4.3 of datasheet
-  LCD->LCDTiming1    = 0x0505F657; // per per Table 4.3 of datasheet
-  LCD->LCDTiming2    = 0x071F1800; // per per Table 4.3 of datasheet
-
-  LCD->LCDUPBASE     = ( uint32_t )( &fb );
-
-  LCD->LCDControl    = 0x00000020; // select TFT   display type
-  LCD->LCDControl   |= 0x00000008; // select 16BPP display mode
-  LCD->LCDControl   |= 0x00000800; // power-on LCD controller
-  LCD->LCDControl   |= 0x00000001; // enable   LCD controller
-}
-
-void enable_ps2_interrupts() {
-  PS20->CR           = 0x00000010; // enable PS/2    (Rx) interrupt
-  PS20->CR          |= 0x00000004; // enable PS/2 (Tx+Rx)
-  PS21->CR           = 0x00000010; // enable PS/2    (Rx) interrupt
-  PS21->CR          |= 0x00000004; // enable PS/2 (Tx+Rx)
-
-  uint8_t ack;
-
-        PL050_putc( PS20, 0xF4 );  // transmit PS/2 enable command
-  ack = PL050_getc( PS20       );  // receive  PS/2 acknowledgement
-        PL050_putc( PS21, 0xF4 );  // transmit PS/2 enable command
-  ack = PL050_getc( PS21       );  // receive  PS/2 acknowledgement
-
-  GICC0->PMR         = 0x000000F0; // unmask all          interrupts
-  GICD0->ISENABLER1 |= 0x00300000; // enable PS2          interrupts
-  GICC0->CTLR        = 0x00000001; // enable GIC interface
-  GICD0->CTLR        = 0x00000001; // enable GIC distributor
-}
 
 uint16_t custom_colour(uint8_t r, uint8_t g, uint8_t b) {
   return (b << 10) | (g << 5) | r;
@@ -408,10 +374,14 @@ int ctoi(char c) {
   }
 }
 
-void draw_string(int x, int y, char* label, int length, int font_size, uint16_t colour){
+void draw_string(int x, int y, int button_width, int button_height, char* label, int length, int font_size, uint16_t colour){
+  if (font_size == 1) int char_size = 18;
+  else int char_size = 9;
+  int x_offset = (button_width - (length * char_size)) / 2;
+  int y_offset = (button_height - char_size) / 2;
   for (int i = 0; i < length; i++) {
-    if (font_size == 1) draw_big_char(ctoi(label[i]), x + ((18) * i), y, colour, -1);
-    else draw_char(ctoi(label[i]), x + ((8) * i), y, colour, -1);
+    if (font_size == 1) draw_big_char(ctoi(label[i]), (x + x_offset) + ((18) * i), (y + y_offset), colour, -1);
+    else draw_char(ctoi(label[i]), (x + x_offset) + ((8) * i), (y + y_offset), colour, -1);
   }
 }
 
@@ -421,7 +391,7 @@ void draw_buttons() {
   for (int i = 0; i < BUTTONS; i++) {
     if (buttons[i].visible) {
       fill_rect(buttons[i].x, buttons[i].y, buttons[i].width, buttons[i].height, buttons[i].colour);
-      draw_string(buttons[i].x, buttons[i].y, buttons[i].label, buttons[i].label_length, buttons[i].label_size, buttons[i].label_colour);
+      draw_string(buttons[i].x, buttons[i].y buttons[i].width, buttons[i].height, buttons[i].label, buttons[i].label_length, buttons[i].label_size, buttons[i].label_colour);
     }
   }
 }
@@ -435,6 +405,7 @@ void draw_gui() {
 void button_pressed(int id) {
   switch (id) {
     case 0: {
+      fill_background(RED);
       break;
     }
     case 1: {
@@ -449,7 +420,7 @@ void button_pressed(int id) {
 void check_button_press(int mx, int my) {
   for (int i = 0; i < BUTTONS; i++) {
     if ((mx > buttons[i].x) && (mx < (buttons[i].x + buttons[i].width))) {
-      if ((my > buttons[i].y) && (mx < (buttons[i].y + buttons[i].height))) {
+      if ((my > buttons[i].y) && (my < (buttons[i].y + buttons[i].height))) {
         button_pressed(i);
       }
     }
@@ -469,7 +440,7 @@ void create_buttons() {
     buttons[i].height = 80;
     buttons[i].colour = custom_colour(20,31,20);
     buttons[i].label_size = 1;
-    buttons[i].label_colour = WHITE;
+    buttons[i].label_colour = BLACK;
     buttons[i].visible = true;
   }
 
@@ -480,7 +451,7 @@ void create_buttons() {
     buttons[i].height = 40;
     buttons[i].colour = custom_colour(31,25,25);
     buttons[i].label_size = 0;
-    buttons[i].label_colour = WHITE;
+    buttons[i].label_colour = BLACK;
     buttons[i].visible = true;
   }
 
@@ -490,7 +461,7 @@ void create_buttons() {
   buttons[8].height = 80;
   buttons[8].colour = custom_colour(20,20,31);
   buttons[8].label_size = 1;
-  buttons[8].label_colour = WHITE;
+  buttons[8].label_colour = BLACK;
   buttons[8].visible = true;
 
   buttons[0].label = "P3";
@@ -531,7 +502,7 @@ void process_mouse_buffer() {
     if (my >= HEIGHT- 20) my = HEIGHT - 20;
   }
   if (m1_pressed == 1) {
-    //check_button_press(mx, my);
+    check_button_press(mx, my);
   }
   draw_cursor(mx, my);
 }
@@ -566,10 +537,6 @@ void keyboard_handler(uint8_t x) {
 }
 
 void main_gui() {
-
-  configure_LCD();
-
-  enable_ps2_interrupts();
 
   create_buttons();
 

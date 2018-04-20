@@ -12,6 +12,8 @@
 #define MAX_FDS 64
 #define PIPE_FILENO 3
 
+uint16_t fb[ 600 ][ 800 ];
+
 pcb_t pcb[MAX_PROCESSES]; int executing = 0;
 pipe_t pipes[MAX_PIPES]; int next_pipe = 0;
 fd_t fds[MAX_FDS]; int next_fd = 0;
@@ -127,6 +129,40 @@ void initialise_timer() {
   GICD0->CTLR         = 0x00000001; // enable GIC distributor
 }
 
+void configure_LCD() {
+  // Configure the LCD display into 800x600 SVGA @ 36MHz resolution.
+  SYSCONF->CLCD      = 0x2CAC;     // per per Table 4.3 of datasheet
+  LCD->LCDTiming0    = 0x1313A4C4; // per per Table 4.3 of datasheet
+  LCD->LCDTiming1    = 0x0505F657; // per per Table 4.3 of datasheet
+  LCD->LCDTiming2    = 0x071F1800; // per per Table 4.3 of datasheet
+
+  LCD->LCDUPBASE     = ( uint32_t )( &fb );
+
+  LCD->LCDControl    = 0x00000020; // select TFT   display type
+  LCD->LCDControl   |= 0x00000008; // select 16BPP display mode
+  LCD->LCDControl   |= 0x00000800; // power-on LCD controller
+  LCD->LCDControl   |= 0x00000001; // enable   LCD controller
+}
+
+void enable_ps2_interrupts() {
+  PS20->CR           = 0x00000010; // enable PS/2    (Rx) interrupt
+  PS20->CR          |= 0x00000004; // enable PS/2 (Tx+Rx)
+  PS21->CR           = 0x00000010; // enable PS/2    (Rx) interrupt
+  PS21->CR          |= 0x00000004; // enable PS/2 (Tx+Rx)
+
+  uint8_t ack;
+
+        PL050_putc( PS20, 0xF4 );  // transmit PS/2 enable command
+  ack = PL050_getc( PS20       );  // receive  PS/2 acknowledgement
+        PL050_putc( PS21, 0xF4 );  // transmit PS/2 enable command
+  ack = PL050_getc( PS21       );  // receive  PS/2 acknowledgement
+
+  GICC0->PMR         = 0x000000F0; // unmask all          interrupts
+  GICD0->ISENABLER1 |= 0x00300000; // enable PS2          interrupts
+  GICC0->CTLR        = 0x00000001; // enable GIC interface
+  GICD0->CTLR        = 0x00000001; // enable GIC distributor
+}
+
 extern void     main_console();
 extern void     main_IPCtest();
 extern void     main_philosopher();
@@ -159,6 +195,10 @@ void hilevel_handler_rst( ctx_t* ctx ) {
   start_execution(ctx, 0);
 
   initialise_timer();
+
+  configure_LCD();
+
+  enable_ps2_interrupts();
 
   int_enable_irq();
 
