@@ -234,6 +234,13 @@ void philo(int id, int left_read_fd, int left_write_fd, int right_read_fd, int r
 
 }
 
+void draw_correct_gui() {
+  for (int i = 0; i < PHILOS; i++) {
+    if (has_fork(i, "left")) add_fork_dinner_gui(i, "left");
+    else add_fork_dinner_gui(i, "right");
+  }
+}
+
 void main_dinner() {
 
   int fds[4 * PHILOS];
@@ -241,6 +248,8 @@ void main_dinner() {
   distribute_forks();
 
   initialise_pipes(fds);
+
+  draw_correct_gui();
 
   write( STDOUT_FILENO, "Dinner started...\n", 18 );
   for (int i = 0; i < PHILOS; i++) {

@@ -11,6 +11,7 @@
 #define MAX_PIPES 40
 #define MAX_FDS 64
 #define PIPE_FILENO 3
+#define STACK_SIZE 0x00010000
 
 uint16_t fb[ 600 ][ 800 ];
 
@@ -171,7 +172,7 @@ void hilevel_handler_rst( ctx_t* ctx ) {
   stacks[0] = (uint32_t) (&tos_user);
 
   for (int i = 1; i < MAX_PROCESSES; i++) {
-    stacks[i] = stacks[i - 1] + 0x00001000;
+    stacks[i] = stacks[i - 1] + STACK_SIZE;
     initialise_pcb( i, i+1, 0, stacks[i], 0 );
   }
 
@@ -332,10 +333,10 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       // copy the stack of the parent process to the stack of the child process
       uint32_t* child_stack = (uint32_t*) (stacks[child]);
       uint32_t* parent_stack = (uint32_t*) (stacks[executing]);
-      memcpy( child_stack, parent_stack, 0x00001000);
+      memcpy( child_stack, parent_stack, STACK_SIZE);
 
       // set stack pointer of child process to correct stack pointer
-      uint32_t new_sp = ctx->sp - (executing * 0x00001000) + (child * 0x00001000);
+      uint32_t new_sp = ctx->sp - (executing * STACK_SIZE) + (child * STACK_SIZE);
       pcb[child].ctx.sp = new_sp;
 
       // set age of child to 1000 so that it executes immediately

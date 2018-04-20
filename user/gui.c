@@ -9,7 +9,8 @@ uint16_t mx = 0;
 uint16_t my = 0;
 int dinner_x = 20;
 int dinner_y = 20;
-bool P3_running = false;
+bool P5_running = false;
+bool dinner = false;
 
 uint16_t custom_colour(uint8_t r, uint8_t g, uint8_t b) {
   return (b << 10) | (g << 5) | r;
@@ -401,7 +402,11 @@ void draw_buttons() {
 void draw_gui() {
   fill_background(BLACK);
   draw_buttons();
-  // draw_dinner_gui();
+  if (dinner) {
+    draw_dinner_gui();
+  } else {
+    draw_buttons();
+  }
 }
 
 extern void main_P3();
@@ -413,24 +418,27 @@ void button_pressed(int id) {
   PL011_putc( UART0, '1', true );
   switch (id) {
     case 0: {
-      if (!P3_running) {
-        PL011_putc( UART0, 'a', true );
-        pid_t pid = fork();
-        if (pid == 0) {
-          PL011_putc( UART0, 'b', true );
-          exec( &main_P5 );
-        } else {
-          nice(pid, 10);
-        }
-        PL011_putc( UART0, 'c', true );
-        P3_running = true;
-      }
       break;
     }
     case 1: {
       break;
     }
     case 2: {
+      if (!P5_running) {
+        pid_t pid = fork();
+        if (pid == 0) {
+          exec( &main_P5 );
+        } else {
+          nice(pid, 10);
+        }
+        P5_running = true;
+      }
+      break;
+    }
+    case 3: {
+      fill_background(BLACK);
+      draw_dinner_gui();
+      dinner = true;
       break;
     }
   }
@@ -523,7 +531,10 @@ void process_mouse_buffer() {
   if (m1_pressed == 1) {
     check_button_press(mx, my);
   }
-  draw_cursor(mx, my);
+  if (!dinner) {
+    draw_gui();
+    draw_cursor(mx, my);
+  }
 }
 
 void add_to_mouse_buffer(uint8_t x) {
