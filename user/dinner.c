@@ -111,7 +111,7 @@ void eat(int id) {
 
   add_eater_dinner_gui(id);
 
-  for (int i = 0; i < 1000000000; i++) {
+  for (int i = 0; i < 100000000; i++) {
     // Delay so that gui can see who is eating
   }
 
@@ -136,13 +136,13 @@ void await_request_and_give_away_fork(int id, int readfd, int writefd, char* sid
     write(STDOUT_FILENO, " cleaning left fork and giving it away.\n", 41);
     clean_fork(id, "left");
     give_fork(id, "left");
-    remove_fork_dinner_gui(id, "left");
+    if (id == 0) remove_fork_dinner_gui(id, "left");
   } else {
     write(STDOUT_FILENO, " cleaning right fork and giving it away.\n", 41);
     clean_fork(id, "right");
     give_fork(id, "right");
     remove_eater_dinner_gui(id);
-    remove_fork_dinner_gui(id, "right");
+    if (id == 15) remove_fork_dinner_gui(id, "right");
   }
   write(writefd, "yy", 2);
 
